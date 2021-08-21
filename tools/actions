@@ -1,0 +1,31 @@
+
+Copyright (c) 2021, C. Tarbide.
+All rights reserved.
+
+Permission to distribute and use this work for any
+purpose is hereby granted provided this copyright
+notice is included in the copy.  This work is provided
+as is, with no warranty of any kind.
+
+=all
+,.PHONY: all
+,all: $(C_PROGRAMS)
+@
+
+=realpath
+type c-program
+dependency config.h
+dependency strlcat.c
+dependency strlcpy.c
+dependency realpath.c
+dependency realpath-main.c
+@
+
+=clean
+,.PHONY: clean
+,clean:
+,	@$(RM) *.$(OBJEXT) *-all.c
+,	@$(RM) $(C_PROGRAMS)
+,	@$(RM) $(NOFAKE_CHUNKS)
+,	@$(RM) $(BUILD_MAKEFILE)
+@

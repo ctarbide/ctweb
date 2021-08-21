@@ -1,0 +1,171 @@
+% -*- mode: Noweb; noweb-code-mode: c-mode -*-
+% Copyright 1991 by Norman Ramsey.  All rights reserved.
+% See file COPYRIGHT for more information.
+\subsection{Expanding multiple files from a single source}
+This main program is used to make the monolithic {\tt noweb}
+script efficient.
+Tips of the hat to Ross Williams and Preston Briggs.
+<<*>>=
+static char rcsid[] = "$Id: mnt.nw,v 1.22 2008/10/06 01:03:05 nr Exp nr $";
+static char rcsname[] = "$Name: v2_12 $";
+static struct keepalive { char *s; struct keepalive *p; } keepalive[] =
+  { {rcsid, keepalive}, {rcsname, keepalive} }; /* avoid warnings */
+#define _POSIX_C_SOURCE 200809L
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <ctype.h>
+#include "modules.h"
+#include "modtrees.h"
+#include "notangle.h"
+#include "errors.h"
+#include "columns.h"
+#include "strsave.h"
+
+<<local prototypes>>
+
+#define Clocformat "#line %L \"%F\"%N"
+static char *locformat = Clocformat;
+
+int main(int argc, char **argv) {
+    int i;
+
+    tabsize = 0;  /* default for nt is not to use tabs */
+
+    progname = argv[0];
+    finalstage = 1;
+    <<read standard input into tree>>
+    for (i=1; i<argc; i++) 
+      switch (*argv[i]) {
+        case '-': <<handle option in [[argv[i]]]>>                 break;
+        default:  emitfile(argv[i]);                               break;
+      }
+    nowebexit(NULL);
+    return errorlevel;          /* slay warning */
+}
+@
+<<read standard input into tree>>=
+read_defs(stdin);
+apply_each_module(remove_final_newline);
+<<write out all conforming roots>>=
+apply_each_module(add_uses_to_usecounts);
+apply_each_module(emit_if_unused_and_conforming);
+<<local prototypes>>=
+void add_uses_to_usecounts(Module mp);
+void emit_if_unused_and_conforming(Module mp);
+<<*>>=
+void add_uses_to_usecounts(Module mp) {
+    Module used;
+    struct modpart *p;
+    for (p=mp->head; p!=NULL; p=p->next)
+        if (p->ptype == MODULE) {
+            used = lookup(p->contents);
+            if (used != NULL)
+                used->usecount++;
+        }
+}
+@ 
+
+A conforming output chunk name has no spaces and no metacharacters.
+Names with spaces are silently ignored, but names that are otherwise
+conforming but that contain metacharacters cause complaints.
+<<*>>=
+void emit_if_unused_and_conforming(Module mp) {
+    char *index;
+    if (mp->usecount == 0 && strpbrk(mp->name, " \n\t\v\r\f") == NULL) {
+        if (index = strpbrk(mp->name, "[](){}!$&<>*?;|^`'\\\""),
+            index == NULL || (index[0] == '*' && index[1] == 0)) {
+	    if (index == mp->name)
+	        errormsg(Error, "@<<*@>> is not a good chunk name for noweb; "
+	                        "use notangle instead");
+	    else
+	        emitfile(mp->name);
+        } else {
+            errormsg(Error, "@<<%s@>> cannot be an output chunk; "
+                            "it contains a metacharacter", mp->name);
+        }
+    }
+}
+<<local prototypes>>=
+static void emitfile(char *modname);
+<<*>>=
+static void emitfile(char *modname) { 
+  Module root = lookup(modname);
+  FILE *fp = tmpfile();
+  char *lfmt, *filename;
+  <<set [[lfmt]] and [[filename]] from [[modname]]>>
+  <<complain and [[return]] if [[root == NULL]]>>
+  if (fp == NULL) errormsg(Fatal, "Calling tmpfile() failed");
+  <<expand [[root]] onto [[fp]]>>
+  rewind(fp);
+  <<if file [[filename]] has the same contents as [[fp]], close [[fp]] and [[return]]>>
+  remove(filename);
+  fclose(fp);
+  fp = fopen(filename, "w");
+  if (fp == NULL) {<<complain about [[filename]] and [[return]]>>}
+  <<expand [[root]] onto [[fp]]>>
+  fclose(fp);
+}
+<<set [[lfmt]] and [[filename]] from [[modname]]>>=
+{ int n = strlen(modname) - 1;
+  if (n >= 0 && modname[n] == '*') {
+    lfmt = locformat;
+    filename = strsave(modname);
+    filename[n] = 0;
+  } else {
+    lfmt = "";
+    filename = modname;
+  }
+}
+<<expand [[root]] onto [[fp]]>>=
+resetloc();
+(void) expand(root, 0, 0, 0, lfmt, fp);
+putc('\n', fp);
+@
+<<if file [[filename]] has the same contents as [[fp]], close [[fp]] and [[return]]>>=
+{ FILE *dest = fopen(filename, "r");
+  if (dest != NULL) {
+    int x, y;
+    do { 
+      x = getc(fp);
+      y = getc(dest);
+    } while (x == y && x != EOF);
+    fclose(dest);
+    if (x == y) {
+      fclose(fp);
+      return;
+    }
+  }
+}
+<<complain about [[filename]] and [[return]]>>=
+errormsg(Error, "Can't open output file %s", filename);
+return;
+<<complain and [[return]] if [[root == NULL]]>>=
+if (root == NULL) {
+  errormsg(Error, "Chunk @<<%s@>> is undefined", filename);
+  return;
+}
+<<handle option in [[argv[i]]]>>=
+    switch (*++argv[i]) {
+        case 'a':
+            if (strcmp(argv[i], "all"))
+                errormsg(Warning, "Ignoring unknown option -%s", argv[i]);
+            else {<<write out all conforming roots>>}
+            break;
+        case 't': /* set tab size or turn off */
+            if (isdigit(argv[i][1]))
+                tabsize = atoi(argv[i]+1);
+            else if (argv[i][1]==0)
+                tabsize = 0;            /* no tabs */
+            else 
+                errormsg(Error, "%s: ill-formed option %s\n", argv[0], argv[i]);
+            break;          
+        case 'L': /* have a #line number format */
+            locformat = argv[i] + 1;
+            if (!*locformat) locformat = Clocformat;
+            break;
+        default:
+            errormsg(Warning, "Ignoring unknown option -%s", argv[i]);
+     }
+@
