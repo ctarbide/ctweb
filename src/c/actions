@@ -7,6 +7,11 @@ purpose is hereby granted provided this copyright
 notice is included in the copy.  This work is provided
 as is, with no warranty of any kind.
 
+=local-vars
+,# TODO: nofake fails when passing -L, fix later
+,# NOFAKEFLAGS = -L
+@
+
 =all
 ,.PHONY: all
 ,all: $(NOFAKE_CHUNKS)
@@ -19,11 +24,119 @@ chunk header strsave.h
 chunk * strsave.c
 @
 
+=nwmktemp
+type nofake
+source nwmktemp.nw
+chunk * nwmktemp.c
+@
+
+=match
+type nofake
+source match.nw
+chunk header match.h
+chunk * match.c
+@
+
+=doc
+,# TODO: type noweave
+@
+
+=columns
+type nofake
+source columns.nw
+chunk header columns.h
+chunk * columns.c
+@
+
+=fakepretty
+type nofake
+source fakepretty.nw
+chunk * fakepretty.c
+@
+
+=modtrees
+type nofake
+source modtrees.nw
+chunk header modtrees.h
+chunk * modtrees.c
+@
+
+=getline
+type nofake
+source getline.nw
+chunk header getline.h
+chunk * getline.c
+@
+
+=main
+type nofake
+source main.nw
+chunk * main.c
+@
+
+=errors
+type nofake
+source errors.nw
+chunk header errors.h
+chunk * errors.c
+@
+
+=mnt
+type nofake
+source mnt.nw
+chunk * mnt.c
+@
+
+=finduses
+type nofake
+source finduses.nw
+chunk * finduses.c
+@
+
+=notangle
+type nofake
+source notangle.nw
+chunk header notangle.h
+chunk * notangle.c
+@
+
+=markup
+type nofake
+source markup.nw
+chunk header markup.h
+chunk * markup.c
+@
+
+=pretty
+type nofake
+source pretty.nw
+chunk header pretty.h
+chunk * pretty.c
+@
+
+=recognize
+type nofake
+source recognize.nw
+chunk header recognize.h
+chunk * recognize.c
+@
+
+=modules
+type nofake
+source modules.nw
+chunk header modules.h
+chunk * modules.c
+@
+
+=markmain
+,# TODO: nofake is complaining, fix later
+,#type nofake
+,#source markmain.nw
+,#chunk * markmain.c
+@
+
 =clean
 ,.PHONY: clean
 ,clean:
-,	@$(RM) *.$(OBJEXT) *-all.c
-,	@$(RM) $(C_PROGRAMS)
-,	@$(RM) $(NOFAKE_CHUNKS)
-,	@$(RM) $(BUILD_MAKEFILE)
+,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
 @

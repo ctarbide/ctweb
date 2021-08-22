@@ -8,17 +8,20 @@ notice is included in the copy.  This work is provided
 as is, with no warranty of any kind.
 
 =vars
-,CC=gcc
-,CFLAGS=-Wall -c -std=c99
+,CC = gcc
+,CFLAGS = -Wall -c -std=c99
 
-,LD=gcc
-,LDFLAGS=
-,LIBS=-lm
+,LD = gcc
+,LDFLAGS =
+,LIBS = -lm
 
-,RM=rm -f
+,MV = mv -f
+,RM = rm -f
+,CHMOD_0755 = chmod 0755
 @
 
 =extra-vars
 internal-vars
+,
 ,AWK=$(BUILD_AWK)
 @

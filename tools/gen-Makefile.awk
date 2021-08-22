@@ -14,16 +14,11 @@
 BEGIN{
 	objext = ENVIRON["OBJEXT"]
 	if (!objext) { objext = "o" }
-
 	maxlinelen = 72
-
-	block[".length"] = 0
-	chunk[".length"] = 0
 }
 
 function push_block(name) {
 	block[block[".length"]++] = name
-	block_output[name, ".length"] = 0
 }
 
 /^=[a-z0-9\-_.]+$/ {
@@ -32,10 +27,10 @@ function push_block(name) {
 }
 
 function push_chunk(name, target,		idx) {
-	idx = block_chunk[cur_block, ".length"]+0
-	block_chunk[cur_block, idx, "name"] = name
-	block_chunk[cur_block, idx, "target"] = target
-	block_chunk[cur_block, ".length"]++
+	idx = block[cur_block, "chunk", ".length"]+0
+	block[cur_block, "chunk", idx, "name"] = name
+	block[cur_block, "chunk", idx, "target"] = target
+	block[cur_block, "chunk", ".length"]++
 
 	idx = chunk[".length"]+0
 	chunk[idx, "name"] = name
@@ -45,14 +40,16 @@ function push_chunk(name, target,		idx) {
 	map_chunk_target_to_block[target] = cur_block
 }
 
-function push_line(s) {
+function push_block_output(s) {
 	sub(/^        /, "\t", s)
-	block_output[cur_block, block_output[cur_block, ".length"]++] = s
+	idx = block[cur_block, "output", ".length"]+0
+	block[cur_block, "output", idx] = s
+	block[cur_block, "output", ".length"]++
 }
 
-function push_line_deferred(s) {
-	deferred[deferred[".length"]++] = cur_block SUBSEP (block_output[cur_block, ".length"]+0)
-	push_line(s)
+function push_block_output_deferred(s) {
+	deferred[deferred[".length"]++] = cur_block SUBSEP "output" SUBSEP (block[cur_block, "output", ".length"]+0)
+	push_block_output(s)
 }
 
 function join_block_names_by_type(curlinelen, type,		res, count, item, itemlen) {
@@ -60,7 +57,7 @@ function join_block_names_by_type(curlinelen, type,		res, count, item, itemlen) 
 	count = block[".length"]
 	for (i=0; i<count; i++) {
 		item = block[i]
-		if (block_type[item] != type) {
+		if (block[item, "type"] != type) {
 			continue
 		}
 		itemlen = length(item)
@@ -89,10 +86,10 @@ function join_nofake_sources_base(curlinelen,		res, count, item, itemlen) {
 	count = block[".length"]
 	for (i=0; i<count; i++) {
 		item = block[i]
-		if (block_type[item] != "nofake") {
+		if (block[item, "type"] != "nofake") {
 			continue
 		}
-		item = block_source[item]
+		item = block[item, "source"]
 		itemlen = length(item)
 		curlinelen += 1 + itemlen
 		# + 2 to account for the possibility of " \\"
@@ -162,36 +159,68 @@ function prefix_dependencies(prefix, block_name) {
 	return prefix join_dependencies(block_name, length(prefix))
 }
 
-/^,/ {	push_line(substr($0, 2)) }
+/^,/ {	push_block_output(substr($0, 2)) }
 
 /^@$/ {
 	if (cur_type == "c-program") {
 		src = cur_block "-all.c"
 		obj = cur_block "-all." objext
 
-		push_line(prefix_dependencies(src ":", cur_block))
-		push_line(prefix_dependencies("        $(CAT)", cur_block) " \\\n\t    >" src)
+		push_block_output(prefix_dependencies(src ":", cur_block))
+		push_block_output(prefix_dependencies("        $(CAT)", cur_block) " \\\n\t    >" src)
 
-		push_line(obj ": " src)
-		push_line("\t$(CC) $(CFLAGS) -o " obj " " src)
+		push_block_output(obj ": " src)
+		push_block_output("\t$(CC) $(CFLAGS) -o " obj " " src)
 
-		push_line(cur_block ": " obj)
-		push_line("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)")
-
-		cur_type = 0
+		push_block_output(cur_block ": " obj)
+		push_block_output("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)")
 	} else if (cur_type == "nofake") {
-		source = block_source[cur_block]
-		print "# **************************************************************** source: [" source "]"
-        } else if (cur_type) {
+		source_orig = block[cur_block, "source"]
+		ilen = block[cur_block, "chunk", ".length"]+0
+		if (block[cur_block, "source-prepend", ".length"]) {
+			source = "zz--" source_orig
+			source_deps = ""
+			ilen = block[cur_block, "source-prepend", ".length"]
+			for (i=0; i<ilen; i++) {
+				source_deps = source_deps " " block[cur_block, "source-prepend", i]
+			}
+			source_resolved_path = source
+			push_block_output(source ":" source_deps " " source_orig)
+			push_block_output("        $(CAT) " source_deps " \\\n\t    '" \
+				source_orig "' >'.tmp." source "'")
+			push_block_output("        $(MV) '.tmp." source "' '" source "'")
+		} else {
+			source = source_orig
+			source_resolved_path = "$(SRC_PREFIX)" source_orig
+		}
+		for (i=0; i<ilen; i++) {
+			target = block[cur_block, "chunk", i, "target"]
+			if (target == source_orig) {
+				print "# error: the target and the source are the same: " target
+			} else {
+				name = block[cur_block, "chunk", i, "name"]
+				push_block_output(target ": " source)
+				push_block_output("        $(NOFAKE) -R'" name \
+					"' $(NOFAKEFLAGS) '" source_resolved_path "' > '.tmp." target "'")
+				push_block_output("        $(MV) '.tmp." target "' '" target "'")
+				if (block[cur_block, "target-option", target, "executable"]) {
+					push_block_output("        $(CHMOD_0755) '" target "'")
+				}
+			}
+		}
+	} else if (cur_type) {
 		print "# error: exaustion: type: " cur_type
+	} else if (!block[cur_block, "output", ".length"]) {
+		push_block_output("# error: type not defined in a block without output")
 	}
 	cur_block = 0
+	cur_type = 0
 }
 
 /^type[ \t]/ {
 	if (cur_block) {
 		cur_type = $2
-		block_type[cur_block] = cur_type
+		block[cur_block, "type"] = cur_type
 	} else {
 		print "# error: orphan type"
 	}
@@ -212,7 +241,7 @@ function prefix_dependencies(prefix, block_name) {
 /^source[ \t]+/ {
 	if (cur_type == "nofake") {
 		if (cur_block) {
-			block_source[cur_block] = $2
+			block[cur_block, "source"] = $2
 		} else {
 			print "# error: orphan source"
 		}
@@ -240,19 +269,68 @@ function prefix_dependencies(prefix, block_name) {
         }
 }
 
+/^source-prepend[ \t]+/ {
+	if (cur_type == "nofake") {
+		if (cur_block) {
+			file = $2
+			if (file) {
+				idx = block[cur_block, "source-prepend", ".length"]++
+				block[cur_block, "source-prepend", idx] = file
+			} else {
+				print "# error: missing file to prepend"
+			}
+		} else {
+			print "# error: orphan chunk"
+		}
+        } else if (cur_type) {
+		print "# error: exaustion: type: " cur_type
+        }
+}
+
+/^target-option[ \t]+/ {
+	if (cur_type == "nofake") {
+		if (cur_block) {
+			target = $2
+			if (target) {
+				option = $3
+				if (option) {
+					value = $4
+					if (length(value)) {
+						block[cur_block, "target-option", target, option] = value
+					} else {
+						print "# error: value is empty for target-option"
+					}
+				} else {
+					print "# error: option is not defined for target-option"
+				}
+			} else {
+				print "# error: target is not defined for target-option"
+			}
+		} else {
+			print "# error: orphan chunk"
+		}
+        } else if (cur_type) {
+		print "# error: exaustion: type: " cur_type
+        }
+}
+
 function export(var, def) {
 	env = ENVIRON[var]
 	return var "=" (env ? env : def)
 }
 
 /^internal-vars$/ {
-	push_line(export("BUILD_AWK", "nawk"))
-	push_line(export("BUILD_MAKEFILE", "Makefile"))
-	push_line("OBJEXT=" objext)
-	push_line_deferred("C_PROGRAMS")
-	push_line_deferred("NOFAKE_SOURCES")
-	push_line_deferred("NOFAKE_CHUNKS")
-	push_line_deferred("CAT")
+	push_block_output(export("BUILD_AWK", "nawk"))
+	push_block_output(export("BUILD_MAKEFILE", "Makefile"))
+	push_block_output("OBJEXT=" objext)
+	push_block_output_deferred("SRC_PREFIX")
+	push_block_output_deferred("SUBDIR")
+	push_block_output_deferred("TOP")
+	push_block_output_deferred("CAT")
+	push_block_output_deferred("NOFAKE")
+	push_block_output_deferred("C_PROGRAMS")
+	push_block_output_deferred("NOFAKE_SOURCES")
+	push_block_output_deferred("NOFAKE_CHUNKS")
 }
 
 END{
@@ -265,50 +343,61 @@ END{
 	vpath = ENVIRON["VPATH"]
 	subdir = ENVIRON["SUBDIR"]
 	top = ENVIRON["TOP"]
+
 	if (vpath == ".") {
 		# in source build
+		src = vpath
 		vars["CAT"] = "CAT = cat"
+		vars["NOFAKE"] = "NOFAKE = " top "/tools/nofake"
 	} else if (vpath ~ /\// && subdir) {
 		# absolute vpath
-		print "VPATH = " vpath "/" subdir
+		src = vpath "/" subdir
+		print "VPATH = " src
 		vars["CAT"] = "CAT = VPATH=\"" vpath "/" subdir "\" " vpath "/tools/cat-vpath.sh"
-		print ""
+		vars["NOFAKE"] = "NOFAKE = " vpath "/tools/nofake"
 	} else if (vpath && subdir && top) {
 		# relative vpath
-		print "VPATH = " vpath "/" top "/" subdir
+		src = vpath "/" top "/" subdir
+		print "VPATH = " src
 		vars["CAT"] = "CAT = VPATH=\"" vpath "/" top "/" subdir "\" " vpath "/" top "/tools/cat-vpath.sh"
+		vars["NOFAKE"] = "NOFAKE = " vpath "/" top "/tools/nofake"
 	} else {
 		print "# error: cannot determine VPATH"
 	}
+	print ""
 
 	vars["C_PROGRAMS"] = prefix_c_programs("C_PROGRAMS =")
 	vars["NOFAKE_SOURCES"] = prefix_nofake_sources("NOFAKE_SOURCES =")
 	vars["NOFAKE_CHUNKS"] = prefix_nofake_chunks("NOFAKE_CHUNKS =")
 
+	vars["SRC_PREFIX"] = "SRC_PREFIX = " (src == "." ? "" : src "/" )
+	vars["SUBDIR"] = "SUBDIR = " subdir
+	vars["TOP"] = "TOP = " top
+
 	ilen = deferred[".length"]
 	for (i=0; i<ilen; i++) {
 		d = deferred[i]
-		block_output[d] = vars[block_output[d]]
+		block[d] = vars[block[d]]
 	}
 
 	ilen = block[".length"]
 	for (i=0; i<ilen; i++) {
 		print "# **************** " block[i]
 		cur_block = block[i]
-		jlen = block_output[cur_block, ".length"]
+		jlen = block[cur_block, "output", ".length"]
 		for (j=0; j<jlen; j++) {
-			print block_output[cur_block, j]
+			print block[cur_block, "output", j]
 		}
 		print ""
 	}
 
-	if (block_output["", ".length"]) {
-		print "# WARNING: " block_output["", ".length"] " unknown lines (empty)"
+	if (block["", "output", ".length"]) {
+		print "# WARNING: " block["", "output", ".length"] " unknown lines (empty)"
 		print ""
 	}
 
-	if (block_output[0, ".length"]) {
-		print "# WARNING: " block_output[0, ".length"] " unknown lines (0)"
+	if (block[0, "output", ".length"]) {
+		print "# WARNING: " block[0, "output", ".length"] " unknown lines (0)"
 		print ""
 	}
 }

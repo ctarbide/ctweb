@@ -1,0 +1,11 @@
+
+this started as an initiative to learn noweb literate-programming tools, see
+README-orig for more details
+
+right now the idea is to boostrap noweb from all original noweb v2.12
+documents (.nw files) using nofake (included).
+
+contrib and examples were not added yet and the self contained build system
+should depend only on a bourne shell, nawk and a standard make (e.g. bmake)
+
+please consider this a work in progress

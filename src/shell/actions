@@ -1,0 +1,54 @@
+
+Copyright (c) 2021, C. Tarbide.
+All rights reserved.
+
+Permission to distribute and use this work for any
+purpose is hereby granted provided this copyright
+notice is included in the copy.  This work is provided
+as is, with no warranty of any kind.
+
+=all
+,.PHONY: all
+,all: $(NOFAKE_CHUNKS)
+@
+
+=clean
+,.PHONY: clean
+,clean:
+,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+@
+
+=notangle
+type nofake
+source notangle.nw
+chunk notangle notangle
+target-option notangle executable 1
+@
+
+=noweave
+type nofake
+source noweave.nw
+chunk noweave noweave
+target-option noweave executable 1
+@
+
+=noweb
+type nofake
+source noweb.nw
+chunk noweb noweb
+target-option noweb executable 1
+@
+
+=roff
+type nofake
+source roff.nw
+chunk noroff noroff
+target-option noroff executable 1
+@
+
+=toroff
+type nofake
+source toroff.nw
+chunk toroff toroff
+target-option toroff executable 1
+@

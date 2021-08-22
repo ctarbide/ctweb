@@ -35,6 +35,7 @@ test -d "${outdir}" || mkdir -p "${outdir}"
 
 awk_script=${thisdir}/gen-Makefile.awk
 test -f "${awk_script}" || die 1 "error: awk script not found: \"${awk_script}\""
-${BUILD_AWK} -f "${awk_script}" "$@" > "${BUILD_MAKEFILE}"
+${BUILD_AWK} -f "${awk_script}" "$@" > "${BUILD_MAKEFILE}.tmp"
+mv -f "${BUILD_MAKEFILE}.tmp" "${BUILD_MAKEFILE}"
 
 echo "all done for \"${0##*/}\""

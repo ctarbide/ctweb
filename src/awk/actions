@@ -1,0 +1,47 @@
+
+Copyright (c) 2021, C. Tarbide.
+All rights reserved.
+
+Permission to distribute and use this work for any
+purpose is hereby granted provided this copyright
+notice is included in the copy.  This work is provided
+as is, with no warranty of any kind.
+
+=all
+,.PHONY: all
+,all: $(NOFAKE_CHUNKS)
+@
+
+=noidx
+type nofake
+source noidx.nw
+chunk * noidx
+target-option noidx executable 1
+@
+
+=noindex
+type nofake
+source noindex.nw
+chunk noindex noindex
+target-option noindex executable 1
+@
+
+=tohtml
+type nofake
+source tohtml.nw
+chunk * tohtml
+target-option tohtml executable 1
+@
+
+=totex
+type nofake
+source totex.nw
+chunk totex totex
+target-option totex executable 1
+@
+
+=clean
+,.PHONY: clean
+,clean:
+,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+@

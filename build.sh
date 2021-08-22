@@ -35,18 +35,36 @@ generate_makefile(){
     vars=${1}; shift
     actions=${1}; shift
     makefile=${1}; shift
-    VPATH="${vpath}" \
-        SUBDIR="${subdir}" \
-        TOP="${top}" \
-        MAKEFILE="${makefile}" \
-        "${gen_makefile_sh}" \
-            "${vars}" \
-            "${actions}"
+    if [ "${makefile}" -nt "${vars}" -a "${makefile}" -nt "${actions}" ]; then
+        echo "info: ${makefile} is up to date"
+    else
+        VPATH="${vpath}" SUBDIR="${subdir}" TOP="${top}" MAKEFILE="${makefile}" \
+            "${gen_makefile_sh}" "${vars}" "${actions}"
+    fi
 }
 
-generate_makefile tools .. "${srcdir}/vars-host" "${srcdir}/tools/actions" tools/Makefile
-generate_makefile src/c ../.. "${srcdir}/vars-host" "${srcdir}/src/c/actions" src/c/Makefile
+# first stage: boostrap host tools for automation, detection, diagnostics etc
+
+generate_makefile tools ..    "${srcdir}/vars-host" "${srcdir}/tools/actions" tools/Makefile
 
 ${make} -C tools all
+
+# build stage, including cross compilation
+
+generate_makefile src/c		../..	"${srcdir}/vars-host"	"${srcdir}/src/c/actions"	src/c/Makefile
+generate_makefile src/awk	../..	"${srcdir}/vars-host"	"${srcdir}/src/awk/actions"	src/awk/Makefile
+generate_makefile src/icon	../..	"${srcdir}/vars-host"	"${srcdir}/src/icon/actions"	src/icon/Makefile
+generate_makefile src/lib	../..	"${srcdir}/vars-host"	"${srcdir}/src/lib/actions"	src/lib/Makefile
+generate_makefile src/shell	../..	"${srcdir}/vars-host"	"${srcdir}/src/shell/actions"	src/shell/Makefile
+generate_makefile src/tex	../..	"${srcdir}/vars-host"	"${srcdir}/src/tex/actions"	src/tex/Makefile
+generate_makefile src/xdoc	../..	"${srcdir}/vars-host"	"${srcdir}/src/xdoc/actions"	src/xdoc/Makefile
+
+${make} -C src/c all
+${make} -C src/awk all
+${make} -C src/icon all
+${make} -C src/lib all
+${make} -C src/shell all
+${make} -C src/tex all
+${make} -C src/xdoc all
 
 echo "all done for \"${0##*/}\""

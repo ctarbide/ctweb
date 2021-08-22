@@ -1,0 +1,169 @@
+
+Copyright (c) 2021, C. Tarbide.
+All rights reserved.
+
+Permission to distribute and use this work for any
+purpose is hereby granted provided this copyright
+notice is included in the copy.  This work is provided
+as is, with no warranty of any kind.
+
+=all
+,.PHONY: all
+,all: $(NOFAKE_CHUNKS)
+@
+
+=yaccdefs
+type nofake
+source yaccdefs.nw
+chunk * yaccdefs.icn
+@
+
+=mmixdefs
+type nofake
+source mmixdefs.nw
+chunk * mmixdefs.icn
+@
+
+=defns
+type nofake
+source defns.nw
+chunk * defns.icn
+@
+
+=texdefs
+type nofake
+source texdefs.nw
+chunk * texdefs.icn
+@
+
+=icondefs
+type nofake
+source icondefs.nw
+chunk * icondefs.icn
+@
+
+=asdldefs
+type nofake
+source asdldefs.nw
+chunk * asdldefs.icn
+@
+
+=pascaldefs
+type nofake
+source pascaldefs.nw
+chunk * pascaldefs.icn
+@
+
+=l2h
+type nofake
+source l2h.nw
+chunk * l2h.icn
+@
+
+=tohtml
+type nofake
+source tohtml.nw
+chunk * tohtml.icn
+@
+
+=totex
+type nofake
+source totex.nw
+chunk * totex.icn
+@
+
+=noidx
+type nofake
+source noidx.nw
+chunk * noidx.icn
+@
+
+=htmltoc
+type nofake
+source htmltoc.nw
+chunk * htmltoc.icn
+@
+
+=pdcached
+type nofake
+source pdcached.nw
+chunk * pdcached.icn
+@
+
+=xchunks
+type nofake
+source xchunks.nw
+chunk * xchunks.icn
+@
+
+=docs2comments
+type nofake
+source docs2comments.nw
+chunk * docs2comments.icn
+@
+
+=cdefs
+type nofake
+source cdefs.nw
+chunk * cdefs.icn
+@
+
+=noxref
+type nofake
+source noxref.nw
+chunk * noxref.icn
+@
+
+=elide
+type nofake
+source elide.nw
+chunk * elide.icn
+@
+
+=noindex
+type nofake
+source noindex.nw
+chunk * noindex.icn
+@
+
+=nwl2h
+type nofake
+source nwl2h.nw
+chunk * nwl2h.icn
+@
+
+=disambiguate
+type nofake
+source disambiguate.nw
+chunk * disambiguate.icn
+@
+
+=pipedocs
+type nofake
+source pipedocs.nw
+chunk * pipedocs.icn
+@
+
+=lrtldefs
+type nofake
+source lrtldefs.nw
+chunk * lrtldefs.icn
+@
+
+=promeladefs
+type nofake
+source promeladefs.nw
+chunk * promeladefs.icn
+@
+
+=smldefs
+type nofake
+source smldefs.nw
+chunk * smldefs.icn
+@
+
+=clean
+,.PHONY: clean
+,clean:
+,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+@

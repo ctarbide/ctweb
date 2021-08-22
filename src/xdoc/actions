@@ -1,0 +1,91 @@
+
+Copyright (c) 2021, C. Tarbide.
+All rights reserved.
+
+Permission to distribute and use this work for any
+purpose is hereby granted provided this copyright
+notice is included in the copy.  This work is provided
+as is, with no warranty of any kind.
+
+=all
+,.PHONY: all
+,all: $(NOFAKE_CHUNKS)
+@
+
+=clean
+,.PHONY: clean
+,clean:
+,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+@
+
+=docdate
+type nofake
+source docdate.nw
+,# note: only for inclusion/prepend
+,# required by:
+,#     htmltoc.nw
+,#     manpage.nw
+,#     nodefs.nw
+,#     noindex.nw
+,#     noroff.nw
+,#     noroots.nw
+,#     nowebfilters.nw
+,#     sl2h.nw
+@
+
+=htmltoc
+type nofake
+source htmltoc.nw
+source-prepend docdate.nw
+chunk * htmltoc.1
+@
+
+=manpage
+type nofake
+source manpage.nw
+source-prepend docdate.nw
+chunk noweb.1 noweb.1
+@
+
+=nodefs
+type nofake
+source nodefs.nw
+source-prepend docdate.nw
+chunk * nodefs.1
+@
+
+=noindex
+type nofake
+source noindex.nw
+source-prepend docdate.nw
+chunk * noindex.1
+@
+
+=noroff
+type nofake
+source noroff.nw
+source-prepend docdate.nw
+chunk * noroff.1
+@
+
+=noroots
+type nofake
+source noroots.nw
+source-prepend docdate.nw
+chunk * noroots.1
+@
+
+=nowebfilters
+type nofake
+source nowebfilters.nw
+source-prepend docdate.nw
+chunk * nowebfilters.1
+@
+
+=sl2h
+type nofake
+source sl2h.nw
+source-prepend docdate.nw
+chunk * sl2h.1
+@
+

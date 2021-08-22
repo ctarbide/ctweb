@@ -1,13 +1,13 @@
-#!/usr/bin/env perl 
+#!/usr/bin/env perl
 #
 # $Id: nofake.nw 5 2006-06-20 06:32:12Z lindig $
 # $URL: svn+ssh://vistabella.de/pub/svn/tools/trunk/nofake/nofake.nw $
 #
 # Generated from nofake.nw. Do not edit! Edit nofake.nw instead and
-# run nofake on it: 
+# run nofake on it:
 #   ./nofake -Rnofake > nofake.pl && cp nofake.pl nofake
 #
-# The manual page is at the end of this file in Perl's 
+# The manual page is at the end of this file in Perl's
 # POD format. You can format it using pod2man(1):
 #
 #   pod2man nofake > nofake.1
@@ -22,103 +22,103 @@ sub version {
     print <<'EOF';
     $Id: nofake.nw 5 2006-06-20 06:32:12Z lindig $
     (c) 2002 Christian Lindig <lindig@eecs.harvard.edu>
-    
-    NoFake is derived from the public domain NegWeb 1.0.1 
+
+    NoFake is derived from the public domain NegWeb 1.0.1
     http://boswa.com/misc/negweb by Darrell Johnson <darrell@boswa.com>.
 EOF
 }
 
-$lineformat='#line %L "%F"%N';      #default format for #line directive 
-$sync=0;                            #default: do not emit #line directives 
+$lineformat = '#line %L "%F"%N';      #default format for #line directive
+$sync = 0;                            #default: do not emit #line directives
 
-$fname='';                          #file name of noweb file
-$chunk='*';                         #default chunk to extract
-%chunks=();                         #hash table for chunks
+$fname = '';                          #file name of noweb file
+$chunk = '*';                         #default chunk to extract
+%chunks = ();                         #hash table for chunks
 
 sub line_directive {
-    my ($fname,$line)=@_;
-    my $ret=$lineformat;
-    $ret=~s/%F/$fname/g;
-    $ret=~s/%L/$line/g;
-    $ret=~s/%N/\n/g;
+    my ($fname,$line) = @_;
+    my $ret = $lineformat;
+    $ret = ~s/%F/$fname/g;
+    $ret = ~s/%L/$line/g;
+    $ret = ~s/%N/\n/g;
     return "\n$ret";
 }
-sub read_file { 
-    my ($fname,$sync)=@_;
+sub read_file {
+    my ($fname,$sync) = @_;
     local *INFILE;
-    if($fname eq ''){
-        *INFILE=STDIN;
-        $fname="Standard Input";
-    }else{
-        if(!open(INFILE, '<'.$fname)){
+    if ($fname eq '') {
+        *INFILE = STDIN;
+        $fname = "Standard Input";
+    } else {
+        if (!open(INFILE, '<'.$fname)) {
             print STDERR "can't open file '$fname'\n";
             exit(1);
         }
     }
-    my $chunk='';   # name of actual chunk, '' iff outside of chunk
+    my $chunk = '';   # name of actual chunk, '' iff outside of chunk
     my $line;
-    for(my $i=1;$line=<INFILE>;$i++) {
-        if($line =~ /^<<([^<>]+)>>=\s*$/o){
-            $chunk=$1;
-            if(!exists $chunks{$chunk}){
-                $chunks{$chunk}='';
+    for (my $i=1; $line = <INFILE>; $i++) {
+        if ($line =~ /^<<([^<>]+)>>=\s*$/o) {
+            $chunk = $1;
+            if (!exists $chunks{$chunk}) {
+                $chunks{$chunk} = '';
             }
-            if($sync){
-                $chunks{$chunk}.=line_directive($fname,$i+1);
+            if ($sync) {
+                $chunks{$chunk} .= line_directive($fname,$i+1);
             }
-        } elsif($chunk ne '') { 
+        } elsif ($chunk ne '') {
             #inside <<foo>>= ... @ chunk
-            if($line=~/^(@|<<[^<>]+>>=\s*)/o){ 
+            if ($line =~ /^(@|<<[^<>]+>>=\s*)/o) {
                 # reached end of chunk
-                $chunk='';
-            }else{
+                $chunk = '';
+            } else {
                 # regular line inside chunk
                 $chunks{$chunk}.=$line;
             }
         } # else outside chunk - nothing to do
     }
 }
-%cache=();
-%being_extracted=();
-sub extract { 
-    my ($chunk)=@_;
-    
-    if(exists $being_extracted{$chunk} && $being_extracted{$chunk} > 0){
-        print STDERR 
+%cache = ();
+%being_extracted = ();
+sub extract {
+    my ($chunk) = @_;
+
+    if (exists $being_extracted{$chunk} && $being_extracted{$chunk} > 0) {
+        print STDERR
             "Code chunk <<$chunk>> is used in its own definition.\n";
         exit(1);
     }
-    if(exists $cache{$chunk}){
+    if (exists $cache{$chunk}) {
         return $cache{$chunk};
     }
-    if(!exists $chunks{$chunk}){
-        print STDERR 
+    if (!exists $chunks{$chunk}) {
+        print STDERR
             "Code chunk <<$chunk>> is requested, but doesn't exist.\n";
         exit(1);
     }
     $being_extracted{$chunk}++;
-    $cache{$chunk}='';
+    $cache{$chunk} = '';
     # obtain chunk and process it recursively
-    foreach my $line (split /\n/, $chunks{$chunk}){
-        if($line =~/^(.*[^\@]*)<<([^<>@]+)>>(.*)$/o){
-            my $prefix=$1;
-            my $postfix=$3;
-            my $next=$2;
+    foreach my $line (split /\n/, $chunks{$chunk}) {
+        if ($line =~ /^(.*[^\@]*)<<([^<>@]+)>>(.*)$/o) {
+            my $prefix = $1;
+            my $postfix = $3;
+            my $next = $2;
             my $indent = length($prefix);
             my $i = 0;
-                
+
             # first line from $next is prefixed with $prefix
             # following lines are indented by length($prefix)
             # $i denotes line counter for lines from $next
             $cache{$chunk} .= $prefix;
-            $cache{$chunk} .= 
-                join("\n", map {$i++; ($i > 1 ? " " x $indent : "") . $_} 
+            $cache{$chunk} .=
+                join("\n", map {$i++; ($i > 1 ? " " x $indent : "") . $_}
                                 split(/\n/,extract($next)));
             $cache{$chunk} .= "$postfix\n";
-            
-        }else{
+
+        } else {
             $line =~ s/\@(<<|>>)/$1/og;
-            $cache{$chunk}.="$line\n";
+            $cache{$chunk} .= "$line\n";
         }
     }
     $being_extracted{$chunk}--;
@@ -127,9 +127,9 @@ sub extract {
 
 sub usage {
     my $arg = shift @_;
-    
+
     print STDERR <<EOF;
-    Unknown command line argument "$arg". See the manual page for help 
+    Unknown command line argument "$arg". See the manual page for help
     which is also included at the end of this Perl script.
 
     nofake [-Rchunk] [-L[format]] [file]
@@ -138,12 +138,12 @@ EOF
 }
 
 while ($_ = shift(@ARGV)) {
-    if(/^\-L(.*)/)              { $sync=1; if ($1 ne '') {$lineformat=$1;}}
-    elsif(/^\-R(.+)/)           { $chunk=$1 }
-    elsif(/^\-(v|-version)$/)   { version(); exit(0); }
-    elsif(/^\-filter$/)         { shift(@ARGV) }  # ignore
-    elsif(/^(\-.*)$/)           { usage($1); exit(1);}
-    else{$fname=$_}
+    if (/^\-L(.*)/)             { $sync = 1; if ($1 ne '') { $lineformat = $1 }}
+    elsif (/^\-R(.+)/)          { $chunk = $1 }
+    elsif (/^\-(v|-version)$/)  { version(); exit(0) }
+    elsif (/^\-filter$/)        { shift(@ARGV) }  # ignore
+    elsif (/^(\-.*)$/)          { usage($1); exit(1) }
+    else                        { $fname = $_ }
 }
 
 read_file($fname,$sync);
@@ -202,7 +202,7 @@ documentation. However, here is an example:
     <<hello.c>>=
     <<includes>>
 
-    int main(int argc, char** argv) 
+    int main(int argc, char** argv)
     {
         <<say hello>>
         return 0;
@@ -244,7 +244,7 @@ problems with other directives and older versions of cpp(1).
 
 Do not use C<@> in chunk names.
 
-=item * 
+=item *
 
 B<nofake> does not accept the B<-filter> I<command> option that
 B<notangle> uses to filter chunks before they are emitted.
@@ -261,7 +261,7 @@ chunk C<*> contains two chunk references in one line.
     <<one>>=
     one
     @
-    
+
 
 =back
 
