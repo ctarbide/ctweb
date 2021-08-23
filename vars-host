@@ -15,6 +15,7 @@ as is, with no warranty of any kind.
 ,LDFLAGS =
 ,LIBS = -lm
 
+,ECHO = echo
 ,MV = mv -f
 ,RM = rm -f
 ,CHMOD_0755 = chmod 0755

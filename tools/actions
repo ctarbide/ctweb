@@ -21,6 +21,24 @@ dependency realpath.c
 dependency realpath-main.c
 @
 
+=functions.awk
+,# note: this target is not built automatically
+,functions.awk: gen-functions.awk
+,	$(AWK) -vshowheader=1 -f gen-functions.awk < gen-functions.awk > .tmp.functions.awk
+,	$(MV) .tmp.functions.awk functions.awk
+@
+
+=gen-Makefile.awk
+,# note: this target is not built automatically
+,gen-Makefile.awk: functions.awk base-gen-Makefile.awk
+,	$(CAT) functions.awk > .tmp.gen-Makefile.awk
+,	$(ECHO) "# this file was generated from functions.awk and" >> .tmp.gen-Makefile.awk
+,	$(ECHO) "# base-gen-Makefile.awk, see actions for more information" >> .tmp.gen-Makefile.awk
+,	$(ECHO) "" >> .tmp.gen-Makefile.awk
+,	$(AWK) -f show-body.awk base-gen-Makefile.awk >> .tmp.gen-Makefile.awk
+,	$(MV) .tmp.gen-Makefile.awk gen-Makefile.awk
+@
+
 =clean
 ,.PHONY: clean
 ,clean:
