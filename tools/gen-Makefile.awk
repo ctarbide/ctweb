@@ -20,6 +20,26 @@ function length_block() {
 	return block[".length"] + 0
 }
 
+function get_block(idx) {
+	return block[idx]
+}
+
+function set_block(idx, val) {
+	return block[idx] = val
+}
+
+function get_block__type(name) {
+	return block[name, "type"]
+}
+
+function set_current_block__type(type) {
+	return block[cur_block, "type"] = type
+}
+
+function set_current_block__source(source) {
+	return block[cur_block, "source"] = source
+}
+
 function push_block_output(name, value) {
 	sub(/^        /, "\t", value)
 	block[name, "output", block[name, "output", ".length"]++] = value
@@ -57,6 +77,14 @@ function length_current_block_chunk() {
 	return block[cur_block, "chunk", ".length"] + 0
 }
 
+function get_current_block_chunk__name(idx) {
+	return block[cur_block, "chunk", idx, "name"]
+}
+
+function get_current_block_chunk__target(idx) {
+	return block[cur_block, "chunk", idx, "target"]
+}
+
 function push_current_block_dependency(name) {
 	block[cur_block, "dependency", block[cur_block, "dependency", ".length"]++] = name
 }
@@ -67,6 +95,22 @@ function length_block_dependency(block_name) {
 
 function get_block_dependency(block_name, idx) {
 	return block[block_name, "dependency", idx]
+}
+
+function get_block__source(name) {
+	return block[name, "source"]
+}
+
+function push_current_block_sourceprepend(source) {
+	block[cur_block, "source-prepend", block[cur_block, "source-prepend", ".length"]++] = source
+}
+
+function length_current_block_sourceprepend() {
+	return block[cur_block, "source-prepend", ".length"] + 0
+}
+
+function get_current_block_sourceprepend(idx) {
+	return block[cur_block, "source-prepend", idx]
 }
 
 function push_chunk(name, target, \
@@ -80,12 +124,20 @@ function length_chunk() {
 	return chunk[".length"] + 0
 }
 
+function get_chunk__target(idx) {
+	return chunk[idx, "target"]
+}
+
 function push_deferred(varname) {
 	deferred[deferred[".length"]++] = varname
 }
 
 function length_deferred() {
 	return deferred[".length"] + 0
+}
+
+function get_deferred(idx) {
+	return deferred[idx]
 }
 
 function lastindex_deferred() {
@@ -105,7 +157,7 @@ BEGIN{
 	maxlinelen = 72
 }
 
-/^=[a-zA-Z0-9\-_.]+$/ {
+/^=[a-zA-Z][a-zA-Z0-9\-_.]*$/ {
 	cur_block = substr($0, 2)
 	push_block(cur_block)
 }
@@ -122,12 +174,12 @@ function push_current_block_output_deferred(s) {
 }
 
 function join_block_names_by_type(curlinelen, type, \
-		res, count, item, itemlen) {
+		res, i_len, item, itemlen) {
 	res = ""
-	count = length_block()
-	for (i=0; i<count; i++) {
-		item = block[i]
-		if (block[item, "type"] != type) {
+	i_len = length_block()
+	for (i=0; i<i_len; i++) {
+		item = get_block(i)
+		if (get_block__type(item) != type) {
 			continue
 		}
 		itemlen = length(item)
@@ -151,16 +203,16 @@ function prefix_c_programs(prefix) {
 	return prefix join_c_programs(length(prefix))
 }
 
-function join_nofake_sources_base(curlinelen, \
-		res, count, item, itemlen) {
+function join_nofake_sources(curlinelen, \
+		res, i_len, item, itemlen) {
 	res = ""
-	count = length_block()
-	for (i=0; i<count; i++) {
-		item = block[i]
-		if (block[item, "type"] != "nofake") {
+	i_len = length_block()
+	for (i=0; i<i_len; i++) {
+		item = get_block(i)
+		if (get_block__type(item) != "nofake") {
 			continue
 		}
-		item = block[item, "source"]
+		item = get_block__source(item)
 		itemlen = length(item)
 		curlinelen += 1 + itemlen
 		# + 2 to account for the possibility of " \\"
@@ -172,22 +224,18 @@ function join_nofake_sources_base(curlinelen, \
 		}
 	}
 	return res
-}
-
-function join_nofake_sources(curlinelen) {
-	return join_nofake_sources_base(curlinelen)
 }
 
 function prefix_nofake_sources(prefix) {
 	return prefix join_nofake_sources(length(prefix))
 }
 
-function join_nofake_chunks_base(curlinelen, \
-		res, count, item, itemlen) {
+function join_nofake_chunks(curlinelen, \
+		res, i_len, item, itemlen) {
 	res = ""
-	count = length_chunk()
-	for (i=0; i<count; i++) {
-		item = chunk[i, "target"]
+	i_len = length_chunk()
+	for (i=0; i<i_len; i++) {
+		item = get_chunk__target(i)
 		itemlen = length(item)
 		curlinelen += 1 + itemlen
 		# + 2 to account for the possibility of " \\"
@@ -199,10 +247,6 @@ function join_nofake_chunks_base(curlinelen, \
 		}
 	}
 	return res
-}
-
-function join_nofake_chunks(curlinelen) {
-	return join_nofake_chunks_base(curlinelen)
 }
 
 function prefix_nofake_chunks(prefix) {
@@ -210,10 +254,10 @@ function prefix_nofake_chunks(prefix) {
 }
 
 function join_dependencies(block_name, curlinelen, \
-		res, count, item, itemlen) {
+		res, i_len, item, itemlen) {
 	res = ""
-	count = length_block_dependency(block_name)
-	for (i=0; i<count; i++) {
+	i_len = length_block_dependency(block_name)
+	for (i=0; i<i_len; i++) {
 		item = get_block_dependency(block_name, i)
 		itemlen = length(item)
 		curlinelen += 1 + itemlen
@@ -240,7 +284,7 @@ function prefix_dependencies(prefix, block_name) {
 		obj = cur_block "-all." objext
 
 		push_current_block_output(prefix_dependencies(src ":", cur_block))
-		push_current_block_output(prefix_dependencies("        $(CAT)", cur_block) " \\\n\t    >" src)
+		push_current_block_output(prefix_dependencies("\t$(CAT)", cur_block) " \\\n\t    >" src)
 
 		push_current_block_output(obj ": " src)
 		push_current_block_output("\t$(CC) $(CFLAGS) -o " obj " " src)
@@ -248,36 +292,36 @@ function prefix_dependencies(prefix, block_name) {
 		push_current_block_output(cur_block ": " obj)
 		push_current_block_output("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)")
 	} else if (cur_type == "nofake") {
-		source_orig = block[cur_block, "source"]
-		ilen = length_current_block_chunk()
-		if (block[cur_block, "source-prepend", ".length"]) {
+		source_orig = get_block__source(cur_block)
+		if (length_current_block_sourceprepend()) {
 			source = "zz--" source_orig
 			source_deps = ""
-			ilen = block[cur_block, "source-prepend", ".length"]
-			for (i=0; i<ilen; i++) {
-				source_deps = source_deps " " block[cur_block, "source-prepend", i]
+			i_len = length_current_block_sourceprepend()
+			for (i=0; i<i_len; i++) {
+				source_deps = source_deps " " get_current_block_sourceprepend(i)
 			}
 			source_resolved_path = source
 			push_current_block_output(source ":" source_deps " " source_orig)
-			push_current_block_output("        $(CAT) " source_deps " \\\n\t    '" \
+			push_current_block_output("\t$(CAT) " source_deps " \\\n\t    '" \
 				source_orig "' >'.tmp." source "'")
-			push_current_block_output("        $(MV) '.tmp." source "' '" source "'")
+			push_current_block_output("\t$(MV) '.tmp." source "' '" source "'")
 		} else {
 			source = source_orig
 			source_resolved_path = "$(SRC_PREFIX)" source_orig
 		}
-		for (i=0; i<ilen; i++) {
-			target = block[cur_block, "chunk", i, "target"]
+		i_len = length_current_block_chunk()
+		for (i=0; i<i_len; i++) {
+			target = get_current_block_chunk__target(i)
 			if (target == source_orig) {
 				print "# error: the target and the source are the same: " target
 			} else {
-				name = block[cur_block, "chunk", i, "name"]
+				name = get_current_block_chunk__name(i)
 				push_current_block_output(target ": " source)
-				push_current_block_output("        $(NOFAKE) -R'" name \
+				push_current_block_output("\t$(NOFAKE) -R'" name \
 					"' $(NOFAKEFLAGS) '" source_resolved_path "' > '.tmp." target "'")
-				push_current_block_output("        $(MV) '.tmp." target "' '" target "'")
+				push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
 				if (block[cur_block, "target-option", target, "executable"]) {
-					push_current_block_output("        $(CHMOD_0755) '" target "'")
+					push_current_block_output("\t$(CHMOD_0755) '" target "'")
 				}
 			}
 		}
@@ -292,8 +336,7 @@ function prefix_dependencies(prefix, block_name) {
 
 /^type[ \t]/ {
 	if (cur_block) {
-		cur_type = $2
-		block[cur_block, "type"] = cur_type
+		set_current_block__type(cur_type = $2)
 	} else {
 		print "# error: orphan type"
 	}
@@ -314,7 +357,7 @@ function prefix_dependencies(prefix, block_name) {
 /^source[ \t]+/ {
 	if (cur_type == "nofake") {
 		if (cur_block) {
-			block[cur_block, "source"] = $2
+			set_current_block__source($2)
 		} else {
 			print "# error: orphan source"
 		}
@@ -347,8 +390,7 @@ function prefix_dependencies(prefix, block_name) {
 		if (cur_block) {
 			file = $2
 			if (file) {
-				idx = block[cur_block, "source-prepend", ".length"]++
-				block[cur_block, "source-prepend", idx] = file
+				push_current_block_sourceprepend(file)
 			} else {
 				print "# error: missing file to prepend"
 			}
@@ -450,18 +492,17 @@ END{
 
 	i_len = length_deferred()
 	for (i=0; i<i_len; i++) {
-		idx = deferred[i]
-		varname = block[idx]
-		block[idx] = vars[varname]
+		nontrivial = get_deferred(i)		# non-trivial index
+		varname = get_block(nontrivial)
+		set_block(nontrivial, vars[varname])
 	}
 
 	i_len = length_block()
 	for (i=0; i<i_len; i++) {
-		print "# **************** " block[i]
-		cur_block = block[i]
+		print "# **************** " get_block(i)
+		cur_block = get_block(i)
 		j_len = length_current_block_output()
 		for (j=0; j<j_len; j++) {
-			# print block[cur_block, "output", j]
 			print get_block_output(cur_block, j)
 		}
 		print ""

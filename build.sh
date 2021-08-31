@@ -28,6 +28,7 @@ else
 fi
 
 gen_makefile_sh=${srcdir}/${gen_makefile_sh_0}
+gen_makefile_awk=${srcdir}/tools/gen-Makefile.awk
 
 generate_makefile(){
     subdir=${1}; shift
@@ -35,7 +36,10 @@ generate_makefile(){
     vars=${1}; shift
     actions=${1}; shift
     makefile=${1}; shift
-    if [ "${makefile}" -nt "${vars}" -a "${makefile}" -nt "${actions}" ]; then
+    if [ "${makefile}" -nt "${vars}" -a "${makefile}" -nt "${actions}" \
+            -a "${makefile}" -nt "${gen_makefile_sh}" \
+            -a "${makefile}" -nt "${gen_makefile_awk}" ]
+    then
         echo "info: ${makefile} is up to date"
     else
         VPATH="${vpath}" SUBDIR="${subdir}" TOP="${top}" MAKEFILE="${makefile}" \

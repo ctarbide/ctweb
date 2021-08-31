@@ -116,6 +116,10 @@ function gfl_join(sep, \
 		print "function get_" fnameprefix fnamesuffix "(" args ") {"
 		print tabify("        return " sym "[" keys "]")
 		print "}"
+	} else if (operation == "set") {
+		print "function set_" fnameprefix fnamesuffix "(" args ") {"
+		print tabify("        return " sym "[" keys "] = " value)
+		print "}"
 	} else if (operation == "lastindex") {
 		print "function lastindex_" fnameprefix fnamesuffix "(" args ") {"
 		print tabify("        return " (idx0 ? idx0 " SUBSEP " : "") "(" sym "[" (idx1 ? idx1 ", " : "" ) lprop "] + 0)")
@@ -153,6 +157,48 @@ function gfl_join(sep, \
 
 #<block
 #Olength
+#>
+
+#<block
+#Oget
+#Aidx
+#Kidx
+#>
+
+#<block
+#Oset
+#Aidx
+#Aval
+#Kidx
+#Vval
+#>
+
+#<block
+#Oget
+#S__type
+#Aname
+#Kname
+#K"type"
+#>
+
+#<block
+#Oset
+#Pcurrent_block
+#S__type
+#Atype
+#Vtype
+#Kcur_block
+#K"type"
+#>
+
+#<block
+#Oset
+#Pcurrent_block
+#S__source
+#Asource
+#Vsource
+#Kcur_block
+#K"source"
 #>
 
 ################ block output
@@ -233,6 +279,28 @@ function gfl_join(sep, \
 #K"chunk"
 #>
 
+#<block
+#Oget
+#Pcurrent_block
+#S_chunk__name
+#Aidx
+#Kcur_block
+#K"chunk"
+#Kidx
+#K"name"
+#>
+
+#<block
+#Oget
+#Pcurrent_block
+#S_chunk__target
+#Aidx
+#Kcur_block
+#K"chunk"
+#Kidx
+#K"target"
+#>
+
 ################ block dependency
 
 #<block
@@ -263,6 +331,46 @@ function gfl_join(sep, \
 #Kidx
 #>
 
+################ block source
+
+#<block
+#Oget
+#S__source
+#Aname
+#Kname
+#K"source"
+#>
+
+################ block source-prepend
+
+#<block
+#Opush
+#Pcurrent_block
+#S_sourceprepend
+#Asource
+#Vsource
+#Kcur_block
+#K"source-prepend"
+#>
+
+#<block
+#Olength
+#Pcurrent_block
+#S_sourceprepend
+#Kcur_block
+#K"source-prepend"
+#>
+
+#<block
+#Oget
+#Pcurrent_block
+#S_sourceprepend
+#Aidx
+#Kcur_block
+#K"source-prepend"
+#Kidx
+#>
+
 ################ chunk
 
 #<chunk
@@ -275,6 +383,14 @@ function gfl_join(sep, \
 #Olength
 #>
 
+#<chunk
+#Oget
+#S__target
+#Aidx
+#Kidx
+#K"target"
+#>
+
 ################ deferred
 
 #<deferred
@@ -285,6 +401,12 @@ function gfl_join(sep, \
 
 #<deferred
 #Olength
+#>
+
+#<deferred
+#Oget
+#Aidx
+#Kidx
 #>
 
 #<deferred
