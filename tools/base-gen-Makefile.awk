@@ -144,11 +144,11 @@ function prefix_dependencies(prefix, block_name) {
 		src = cur_block "-all.c"
 		obj = cur_block "-all." objext
 
-		push_current_block_output(prefix_dependencies(src ":", cur_block))
+		push_current_block_output(prefix_dependencies(src ": actions", cur_block))
 		push_current_block_output(prefix_dependencies("\t$(CAT)", cur_block) " \\\n\t    >" src)
 
 		push_current_block_output(obj ": " src)
-		push_current_block_output("\t$(CC) $(CFLAGS) -o " obj " " src)
+		push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " " src)
 
 		push_current_block_output(cur_block ": " obj)
 		push_current_block_output("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)")
@@ -162,7 +162,7 @@ function prefix_dependencies(prefix, block_name) {
 				source_deps = source_deps " " get_current_block_sourceprepend(i)
 			}
 			source_resolved_path = source
-			push_current_block_output(source ":" source_deps " " source_orig)
+			push_current_block_output(source ": actions" source_deps " " source_orig)
 			push_current_block_output("\t$(CAT) " source_deps " \\\n\t    '" \
 				source_orig "' >'.tmp." source "'")
 			push_current_block_output("\t$(MV) '.tmp." source "' '" source "'")
@@ -301,10 +301,12 @@ function export(var, def, \
 	push_current_block_output(export("BUILD_MAKEFILE", "Makefile"))
 	push_current_block_output("OBJEXT=" objext)
 	push_current_block_output_deferred("SRC_PREFIX")
+	push_current_block_output_deferred("SRC_INCLUDE")
 	push_current_block_output_deferred("SUBDIR")
 	push_current_block_output_deferred("TOP")
 	push_current_block_output_deferred("CAT")
 	push_current_block_output_deferred("NOFAKE")
+	push_current_block_output_deferred("INSTALL")
 	push_current_block_output_deferred("C_PROGRAMS")
 	push_current_block_output_deferred("NOFAKE_SOURCES")
 	push_current_block_output_deferred("NOFAKE_CHUNKS")
@@ -321,33 +323,53 @@ END{
 	subdir = ENVIRON["SUBDIR"]
 	top = ENVIRON["TOP"]
 
+	tools_prefix = ""
+
 	if (vpath == ".") {
 		# in source build
 		src = vpath
-		vars["CAT"] = "CAT = cat"
-		vars["NOFAKE"] = "NOFAKE = " top "/tools/nofake"
+		if (top == ".") {
+			# toplevel
+			tools_prefix = "tools/"
+		} else {
+			tools_prefix = top "/tools/"
+		}
 	} else if (vpath ~ /\// && subdir) {
 		# absolute vpath
 		src = vpath "/" subdir
 		print "VPATH = " src
-		vars["CAT"] = "CAT = VPATH=\"" vpath "/" subdir "\" " vpath "/tools/cat-vpath.sh"
-		vars["NOFAKE"] = "NOFAKE = " vpath "/tools/nofake"
+		tools_prefix = vpath "/tools/"
 	} else if (vpath && subdir && top) {
 		# relative vpath
-		src = vpath "/" top "/" subdir
-		print "VPATH = " src
-		vars["CAT"] = "CAT = VPATH=\"" vpath "/" top "/" subdir "\" " vpath "/" top "/tools/cat-vpath.sh"
-		vars["NOFAKE"] = "NOFAKE = " vpath "/" top "/tools/nofake"
+		if (subdir == "." && top == ".") {
+			# toplevel
+			src = vpath
+			print "VPATH = " src
+			tools_prefix = vpath "/tools/"
+		} else {
+			src = vpath "/" top "/" subdir
+			print "VPATH = " src
+			tools_prefix = vpath "/" top "/tools/"
+		}
 	} else {
 		print "# error: cannot determine VPATH"
 	}
 	print ""
+
+	if (src == ".") {
+		vars["CAT"] = "CAT = cat"
+	} else {
+		vars["CAT"] = "CAT = VPATH=\".:" src "\" " tools_prefix "cat-vpath.sh"
+	}
+	vars["NOFAKE"] = "NOFAKE = " tools_prefix "nofake"
+	vars["INSTALL"] = "INSTALL = " tools_prefix "install.sh"
 
 	vars["C_PROGRAMS"] = prefix_c_programs("C_PROGRAMS =")
 	vars["NOFAKE_SOURCES"] = prefix_nofake_sources("NOFAKE_SOURCES =")
 	vars["NOFAKE_CHUNKS"] = prefix_nofake_chunks("NOFAKE_CHUNKS =")
 
 	vars["SRC_PREFIX"] = "SRC_PREFIX = " (src == "." ? "" : src "/" )
+	vars["SRC_INCLUDE"] = "SRC_INCLUDE = -I'" src "'"
 	vars["SUBDIR"] = "SUBDIR = " subdir
 	vars["TOP"] = "TOP = " top
 

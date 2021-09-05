@@ -8,6 +8,8 @@ notice is included in the copy.  This work is provided
 as is, with no warranty of any kind.
 
 =vars
+,PREFIX = $(HOME)/local
+
 ,CC = gcc
 ,CFLAGS = -Wall -c -std=c99
 
@@ -16,9 +18,16 @@ as is, with no warranty of any kind.
 ,LIBS = -lm
 
 ,ECHO = echo
+,CP = cp -f
 ,MV = mv -f
 ,RM = rm -f
 ,CHMOD_0755 = chmod 0755
+
+,SED = sed
+,LEX = flex
+
+,YACC = yacc
+,YFLAGS = -d
 @
 
 =extra-vars

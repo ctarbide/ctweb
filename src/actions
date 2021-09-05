@@ -1,0 +1,11 @@
+
+=all
+,.PHONY: all
+,all: c
+@
+
+=c
+,.PHONY: c
+,c:
+,	$(MAKE) -C c
+@

@@ -55,6 +55,8 @@ ${make} -C tools all
 
 # build stage, including cross compilation
 
+generate_makefile .		.	"${srcdir}/vars-host"	"${srcdir}/actions"	Makefile
+generate_makefile src		..	"${srcdir}/vars-host"	"${srcdir}/src/actions"	src/Makefile
 generate_makefile src/c		../..	"${srcdir}/vars-host"	"${srcdir}/src/c/actions"	src/c/Makefile
 generate_makefile src/awk	../..	"${srcdir}/vars-host"	"${srcdir}/src/awk/actions"	src/awk/Makefile
 generate_makefile src/icon	../..	"${srcdir}/vars-host"	"${srcdir}/src/icon/actions"	src/icon/Makefile

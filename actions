@@ -1,0 +1,11 @@
+
+=all
+,.PHONY: all
+,all: src
+@
+
+=src
+,.PHONY: src
+,src:
+,	$(MAKE) -C src
+@

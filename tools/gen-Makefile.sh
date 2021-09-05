@@ -31,7 +31,11 @@ export \
     GENERATED_BY_MESSAGE
 
 outdir=${BUILD_MAKEFILE%/*}
-test -d "${outdir}" || mkdir -p "${outdir}"
+
+if [ x"${outdir}" != x"${BUILD_MAKEFILE}" ]; then
+    # subdir
+    test -d "${outdir}" || mkdir -p "${outdir}"
+fi
 
 awk_script=${thisdir}/gen-Makefile.awk
 test -f "${awk_script}" || die 1 "error: awk script not found: \"${awk_script}\""
