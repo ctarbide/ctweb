@@ -195,9 +195,6 @@ Norman Ramsey, Literate programming simplified, IEEE Software
 <<nofake>>=
 #!/usr/bin/env perl
 #
-# $Id: nofake.nw 5 2006-06-20 06:32:12Z lindig $
-# $URL: svn+ssh://vistabella.de/pub/svn/tools/trunk/nofake/nofake.nw $
-#
 # Generated from nofake.nw. Do not edit! Edit nofake.nw instead and
 # run nofake on it:
 #   ./nofake -Rnofake > nofake.pl && cp nofake.pl nofake
@@ -211,11 +208,20 @@ Norman Ramsey, Literate programming simplified, IEEE Software
 # This software is in the public domain; for details, see the manual
 # page.
 
-use warnings;
+eval 'exec perl -wS $0 ${1+"$@"}'
+    if 0;
+
+use strict;
+use warnings FATAL => 'uninitialized';
+use 5.010; # perl v5.10 was released on December 18, 2007
+use Carp ();
+$SIG{__DIE__} = \&Carp::confess;
+
+local $\ = "\n";
 
 sub version {
     print @<<'EOF';
-    $Id: nofake.nw 5 2006-06-20 06:32:12Z lindig $
+    (c) 2021 C. Tarbide <ctarbide@tuta.io>
     (c) 2002 Christian Lindig <lindig@eecs.harvard.edu>
 
     NoFake is derived from the public domain NegWeb 1.0.1
@@ -225,6 +231,7 @@ EOF
 
 <<defaults>>
 
+<<many utils>>
 <<line directive>>
 <<read file>>
 <<extract>>
@@ -244,12 +251,13 @@ chunk may contain references to other chunks. These are ignored when a
 chunk is read and expanded when then chunk itself is expanded.
 
 <<defaults>>=
-$lineformat = '#line %L "%F"%N';      #default format for #line directive
-$sync = 0;                            #default: do not emit #line directives
+my $lineformat = '#line %L "%F"%N';   #default format for #line directive
+my $sync = 0;                         #default: do not emit #line directives
 
-$fname = '';                          #file name of noweb file
-$chunk = '*';                         #default chunk to extract
-%chunks = ();                         #hash table for chunks
+my $fname = '';                       #file name of noweb file
+my $chunk = '*';                      #default chunk to extract
+my %chunks = ();                      #hash table for chunks
+my %chunks_options = ();              #hash table for chunks options
 @
 
 % ------------------------------------------------------------------
@@ -269,12 +277,12 @@ controlled by the [[-L]] command line option.
 
 <<line directive>>=
 sub line_directive {
-    my ($fname,$line) = @_;
+    my ($fname, $line) = @_;
     my $ret = $lineformat;
-    $ret = ~s/%F/$fname/g;
-    $ret = ~s/%L/$line/g;
-    $ret = ~s/%N/\n/g;
-    return "\n$ret";
+    $ret =~ s/%F/$fname/g;
+    $ret =~ s/%L/$line/g;
+    $ret =~ s/%N/\n/g;
+    return $ret;
 }
 @
 
@@ -283,40 +291,41 @@ chunk definitions. Each chunk is put under its name into the global
 [[chunks]] hash table. The [[sync]] flag controls whether line
 directives are emitted.
 
+<<read line>>=
+if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
+    $chunk = $1;
+    if (!$chunks_options{$chunk}) {
+        $chunks_options{$chunk} = {};
+    }
+    $chunks_options{$chunk}->{nchunks}++;
+} elsif ($chunk) {
+    #inside @<<foo@>>= ... @ chunk
+    if ($line =~ m{^\@$}) {
+        # noweb.1: ... at sign (@) followed by a newline
+        $chunk = '';
+    } elsif ($line =~ m{^\@\s}) {
+        # noweb.1: ... at sign (@) followed by a space
+        $chunk = '';
+    } else {
+        # regular line inside chunk
+        set_many(%chunks, $chunk, $., $line . "\n");
+    }
+} # else outside chunk - nothing to do
+@
+
 <<read file>>=
 sub read_file {
-    my ($fname,$sync) = @_;
-    local *INFILE;
-    if ($fname eq '') {
-        *INFILE = STDIN;
-        $fname = "Standard Input";
+    my ($fname) = @_;
+    local @ARGV = ();
+    if ($fname =~ m{^(-|)$}) {
+        push(@ARGV, '-');
     } else {
-        if (!open(INFILE, '<'.$fname)) {
-            print STDERR "can't open file '$fname'\n";
-            exit(1);
-        }
+        push(@ARGV, $fname);
     }
-    my $chunk = '';   # name of actual chunk, '' iff outside of chunk
-    my $line;
-    for (my $i=1; $line = <INFILE>; $i++) {
-        if ($line =~ /^@<<([^<>]+)@>>=\s*$/o) {
-            $chunk = $1;
-            if (!exists $chunks{$chunk}) {
-                $chunks{$chunk} = '';
-            }
-            if ($sync) {
-                $chunks{$chunk} .= line_directive($fname,$i+1);
-            }
-        } elsif ($chunk ne '') {
-            #inside @<<foo@>>= ... @ chunk
-            if ($line =~ /^(@|@<<[^<>]+@>>=\s*)/o) {
-                # reached end of chunk
-                $chunk = '';
-            } else {
-                # regular line inside chunk
-                $chunks{$chunk}.=$line;
-            }
-        } # else outside chunk - nothing to do
+    my $chunk = '';
+    while (my $line = <>) {
+        chomp($line);
+        <<read line>>
     }
 }
 @
@@ -329,62 +338,80 @@ While we look for chunk names in lines to extract we have to be
 careful: if a chunk name delimiter is preceded by a an [[@]] it does
 not denote a chunk, but the delimiter literally.
 
-We try to preserve the indentation of expanded chunks: a line with a
-chunk reference is split into prefix, reference, and postfix. The first
-line from the referenced chunk is prefixed with the prefix, all
-following lines with as many whitespace as the prefix is long. The
-postfix is appended to the last line of the chunk.
+When dealing with line numbers, {\nofake} prioritize document structure,
+{\notangle} is more liberal in breaking lines to put line directives.
 
-I have noted that the indentation produced by {\nofake} is different
-from {\noweb}. Currently I don't understand how {\noweb} mainatins
-indentation when extracting multi-line chunks.
+<<extract and process chunk reference>>=
+my ($chunkreflnum, @chunkreflines) = extract($len + length($before), $chunkref);
+push(@res, [0, $chunkreflnum]) if $sync;
+while (@chunkreflines and ref($chunkreflines[0])) {
+    # propagate special items early, before processing lines
+    push(@res, shift(@chunkreflines));
+}
+if (@chunkreflines > 1) {
+    # many lines
+    my $first = shift(@chunkreflines);
+    my $last = pop(@chunkreflines);
+    push(@res, $before . $first);
+    push(@res, ref($_) ? $_ : $indent . $_) for (@chunkreflines);
+    if ($after) {
+        chomp($last);
+        push(@res, $indent . $last . $after . "\n");
+    } else {
+        push(@res, $indent . $last);
+    }
+} elsif (@chunkreflines) {
+    # just 1 line
+    if ($after) {
+        chomp(my $tmp = $chunkreflines[0]);
+        push(@res, $before . $tmp . $after . "\n");
+    } else {
+        push(@res, $before . $chunkreflines[0]);
+    }
+} else {
+    Carp::carp("warning: code chunk @<<${chunkref}@>> is empty");
+}
+@
+
+<<process line>>=
+if ($line =~ /^(|.*?[^\@])@<<(.*?[^\@])@>>(.*)$/o) {
+    my $before = $1;
+    my $chunkref = $2;
+    my $after = $3;
+    my $indent = ' ' x length($before);
+    if ($chunks_options{$chunkref}) {
+        <<extract and process chunk reference>>
+        $lnum_show_next = 1;
+    } else {
+        Carp::carp("warning: code chunk @<<${chunkref}@>> does not exist.");
+    }
+} else {
+    if ($sync && $lnum_show_next) {
+        push(@res, [1, $lnum]);
+        $lnum_show_next = 0;
+    }
+    $line =~ s/\@(@<<|@>>)/$1/og;
+    push(@res, $line);
+}
+@
 
 <<extract>>=
-%cache = ();
-%being_extracted = ();
+my %being_extracted = ();
 sub extract {
-    my ($chunk) = @_;
-
-    if (exists $being_extracted{$chunk} && $being_extracted{$chunk} > 0) {
-        print STDERR
-            "Code chunk @<<$chunk@>> is used in its own definition.\n";
-        exit(1);
-    }
-    if (exists $cache{$chunk}) {
-        return $cache{$chunk};
-    }
-    if (!exists $chunks{$chunk}) {
-        print STDERR
-            "Code chunk @<<$chunk@>> is requested, but doesn't exist.\n";
-        exit(1);
+    my ($len, $chunk) = @_;
+    if ($being_extracted{$chunk}) {
+        Carp::croak("error: code chunk @<<$chunk@>> is used in its own definition.");
     }
     $being_extracted{$chunk}++;
-    $cache{$chunk} = '';
-    # obtain chunk and process it recursively
-    foreach my $line (split /\n/, $chunks{$chunk}) {
-        if ($line =~ /^(.*[^\@]*)@<<([^<>@]+)@>>(.*)$/o) {
-            my $prefix = $1;
-            my $postfix = $3;
-            my $next = $2;
-            my $indent = length($prefix);
-            my $i = 0;
-
-            # first line from $next is prefixed with $prefix
-            # following lines are indented by length($prefix)
-            # $i denotes line counter for lines from $next
-            $cache{$chunk} .= $prefix;
-            $cache{$chunk} .=
-                join("\n", map {$i++; ($i > 1 ? " " x $indent : "") . $_}
-                                split(/\n/,extract($next)));
-            $cache{$chunk} .= "$postfix\n";
-
-        } else {
-            $line =~ s/\@(@<<|@>>)/$1/og;
-            $cache{$chunk} .= "$line\n";
-        }
+    my @res = ();
+    my $lnum_show_next = 0;
+    my @input = get_many($chunks{$chunk});
+    my $representative_line = $input[0] if @input;
+    while (my ($lnum, $line) = splice(@input, 0, 2)) {
+        <<process line>>
     }
     $being_extracted{$chunk}--;
-    return $cache{$chunk};
+    return $representative_line, @res;
 }
 @
 
@@ -413,7 +440,44 @@ while ($_ = shift(@ARGV)) {
     else                        { $fname = $_ }
 }
 
-read_file($fname,$sync);
-print extract($chunk);
-exit(0);    # exit successfully
+read_file($fname);
+
+{
+    my ($representative_line, @res) = extract(0, $chunk);
+    local $\ = undef;
+    print line_directive($fname, $representative_line) if $sync;
+    for my $item (@res) {
+        if (ref($item) eq 'ARRAY') {
+            print line_directive($fname, $item->[1]);
+        } else {
+            print $item;
+        }
+    }
+}
+
+@
+
+<<many utils>>=
+sub set_many (\%@) {
+    my ($h, $k, @rest) = @_;
+    if (defined($h->{$k})) {
+        if (ref($h->{$k}) eq 'ARRAY') {
+            push(@{ $h->{$k} }, @rest);
+        } else {
+            $h->{$k} = [$h->{$k}, @rest];
+        }
+    } elsif (@rest > 1) {
+        $h->{$k} = [ @rest ];
+    } elsif (@rest) {
+        $h->{$k} = $rest[0];
+    } else {
+        Carp::carp("no value specified");
+    }
+}
+sub get_many {
+    # () yield undef in scalar context
+    return () unless defined($_[0]);              # return () instead of (undef)
+    return @{ $_[0] } if ref($_[0]) eq 'ARRAY';   # return @{arg}
+    @_;                                           # return (arg)
+}
 @
