@@ -7,5 +7,5 @@
 =src
 ,.PHONY: src
 ,src:
-,	$(MAKE) -C src
+,	$(MAKE) -C src all
 @

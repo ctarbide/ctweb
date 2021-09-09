@@ -1,146 +1,426 @@
+#| <<functions preamble>>=
+#|
+#| Copyright (c) 2021, C. Tarbide.
+#| All rights reserved.
+#|
+#| Permission to distribute and use this work for any
+#| purpose is hereby granted provided this copyright
+#| notice is included in the copy.  This work is provided
+#| as is, with no warranty of any kind.
+#|
 
-# Copyright (c) 2021, C. Tarbide.
-# All rights reserved.
+# objective: generate some utility functions using awk,
+# for awk. why? dry?
 
-# Permission to distribute and use this work for any
-# purpose is hereby granted provided this copyright
-# notice is included in the copy.  This work is provided
-# as is, with no warranty of any kind.
+# usage: nawk -f functions.awk < functions.awk
+# usage: nawk -f functions.awk < functions.awk | ./nofake -R'functions awk' | nawk -f -
+# usage: nawk -f functions.awk < functions.awk | notangle -R'functions awk' | nawk -f -
 
-/^#@$/ { if (showheader) { showheader = 0; print; print "" } }
-{ if (showheader) print }
-
-#@
-
-function push_block(name) {
-	block[block[".length"]++] = name
+BEGIN{
+	# length property name
+	lprop = "\".length\""
 }
 
-function length_block() {
-	return block[".length"] + 0
+/^#\| / { print substr($0,4) }
+/^#\|$/ { print "" }
+
+function tabify(s) {
+	gsub(/        /, "\t", s)
+	return s
 }
 
-function get_block(idx) {
-	return block[idx]
+## sch - source code hooks
+
+/^#[0-9]/ {
+	num = substr($0,2,1) + 0
+	sch[num, sch[num, ".len"]++] = substr($0,3)
 }
 
-function set_block(idx, val) {
-	return block[idx] = val
+function sch_get(num, \
+		res, i_len) {
+	res = ""
+	i_len = sch[num, ".len"] + 0
+	for (i=0; i<i_len; i++) {
+		res = res "\n" sch[num, i]
+	}
+	return substr(res, 2);
 }
 
-function get_block__type(name) {
-	return block[name, "type"]
+function print_sch(num, \
+		tmp) {
+	tmp = sch_get(num)
+	if (tmp) print tmp;
 }
 
-function set_current_block__type(type) {
-	return block[cur_block, "type"] = type
+function sch_clean() {
+	for (i=0; i<10; i++) {
+		sch[i, ".len"] = 0
+	}
 }
 
-function set_current_block__source(source) {
-	return block[cur_block, "source"] = source
+# generic field list
+
+/^#F/ {
+	gfl[gfl[".len"]++] = substr($0,3)
+}
+function gfl_length() { return gfl[".len"] + 0 }
+function gfl_get(num) { return gfl[num+0] }
+function gfl_clean() { gfl[".len"] = 0; gfl[0] = "" }
+function gfl_join(sep, \
+		res, i_len) {
+	res = gfl_get(0)
+	i_len = gfl_length()
+	for (i=1; i<i_len; i++) {
+		res = res sep gfl_get(i)
+	}
+	return res
 }
 
-function push_block_output(name, value) {
-	sub(/^        /, "\t", value)
-	block[name, "output", block[name, "output", ".length"]++] = value
+#
+
+/^#</ { sym = substr($0,3); fnameprefix = sym }
+/^#O/ { operation = substr($0,3) }
+/^#P/ { fnameprefix = substr($0,3) }
+/^#S/ { fnamesuffix = substr($0,3) }
+/^#A/ { args = (args ? args ", " : "" ) substr($0,3) }
+/^#K/ { keys = (keys ? keys ", " : "" ) substr($0,3) }
+/^#V/ { value = substr($0,3) }
+/^#I/ {
+	idx0 = (idx0 ? idx0 " SUBSEP " : "" ) substr($0,3)
+	idx1 = (idx1 ? idx1 ", " : "" ) substr($0,3)
+}
+/^#>$/ {
+	if (operation == "push") {
+		if (keys) { keys = keys ", " }
+		if (gfl_length()) {
+			print_sch(0)
+			print "function push_" fnameprefix fnamesuffix "(" (args ? args ", " : "") gfl_join(", ") ", \\\n\t\tidx) {"
+			print_sch(1)
+			print tabify("        idx = " sym "[" keys lprop "]++")
+			i_len = gfl_length()
+			for (i=0; i<i_len; i++) {
+				field = gfl_get(i)
+				print tabify("        " sym "[" keys "idx, \"" field  "\"] = " field)
+			}
+		} else {
+			print_sch(0)
+			print "function push_" fnameprefix fnamesuffix "(" args ") {"
+			print_sch(1)
+			print tabify("        " sym "[" keys sym "[" keys lprop "]++] = " value)
+		}
+		print "}"
+	} else if (operation == "length") {
+		print "function length_" fnameprefix fnamesuffix "(" args ") {"
+		print tabify("        return " sym "[" (keys ? keys ", " : "" ) lprop "] + 0")
+		print "}"
+	} else if (operation == "get") {
+		print "function get_" fnameprefix fnamesuffix "(" args ") {"
+		print tabify("        return " sym "[" keys "]")
+		print "}"
+	} else if (operation == "set") {
+		print "function set_" fnameprefix fnamesuffix "(" args ") {"
+		print tabify("        return " sym "[" keys "] = " value)
+		print "}"
+	} else if (operation == "lastindex") {
+		print "function lastindex_" fnameprefix fnamesuffix "(" args ") {"
+		print tabify("        return " (idx0 ? idx0 " SUBSEP " : "") "(" sym "[" (idx1 ? idx1 ", " : "" ) lprop "] + 0)")
+		print "}"
+	} else if (operation) {
+		print "# error: unknown operation: " operation
+	} else {
+		print "# error: operation not defined"
+	}
+
+	print ""
+
+	sym = ""
+	operation = ""
+	fnameprefix = ""
+	fnamesuffix = ""
+	args = ""
+	keys = ""
+	value = ""
+
+	idx0 = ""
+	idx1 = ""
+
+	sch_clean()
+	gfl_clean()
 }
 
-function push_current_block_output(value) {
-	sub(/^        /, "\t", value)
-	block[cur_block, "output", block[cur_block, "output", ".length"]++] = value
-}
+#| <<functions awk>>=
+#|
 
-function length_block_output(block_name) {
-	return block[block_name, "output", ".length"] + 0
-}
+#| ################ block
+#|
 
-function length_current_block_output() {
-	return block[cur_block, "output", ".length"] + 0
-}
+#<block
+#Opush
+#Aname
+#Vname
+#>
 
-function lastindex_current_block_output() {
-	return cur_block SUBSEP "output" SUBSEP (block[cur_block, "output", ".length"] + 0)
-}
+#<block
+#Olength
+#>
 
-function get_block_output(block_name, idx) {
-	return block[block_name, "output", idx]
-}
+#<block
+#Oget
+#Aidx
+#Kidx
+#>
 
-function push_current_block_chunk(name, target, \
-		idx) {
-	idx = block[cur_block, "chunk", ".length"]++
-	block[cur_block, "chunk", idx, "name"] = name
-	block[cur_block, "chunk", idx, "target"] = target
-}
+#<block
+#Oset
+#Aidx
+#Aval
+#Kidx
+#Vval
+#>
 
-function length_current_block_chunk() {
-	return block[cur_block, "chunk", ".length"] + 0
-}
+#<block
+#Oget
+#S__type
+#Aname
+#Kname
+#K"type"
+#>
 
-function get_current_block_chunk__name(idx) {
-	return block[cur_block, "chunk", idx, "name"]
-}
+#<block
+#Oset
+#Pcurrent_block
+#S__type
+#Atype
+#Vtype
+#Kcur_block
+#K"type"
+#>
 
-function get_current_block_chunk__target(idx) {
-	return block[cur_block, "chunk", idx, "target"]
-}
+#<block
+#Oset
+#Pcurrent_block
+#S__source
+#Asource
+#Vsource
+#Kcur_block
+#K"source"
+#>
 
-function push_current_block_dependency(name) {
-	block[cur_block, "dependency", block[cur_block, "dependency", ".length"]++] = name
-}
+#| ################ block output
+#|
 
-function length_block_dependency(block_name) {
-	return block[block_name, "dependency", ".length"] + 0
-}
+#<block
+#Opush
+#S_output
+#Aname
+#Avalue
+#Kname
+#K"output"
+#Vvalue
+#1	sub(/^        /, "\t", value)
+#>
 
-function get_block_dependency(block_name, idx) {
-	return block[block_name, "dependency", idx]
-}
+#<block
+#Opush
+#Pcurrent_block
+#S_output
+#Avalue
+#Kcur_block
+#K"output"
+#Vvalue
+#1	sub(/^        /, "\t", value)
+#>
 
-function get_block__source(name) {
-	return block[name, "source"]
-}
+#<block
+#Olength
+#S_output
+#Ablock_name
+#Kblock_name
+#K"output"
+#>
 
-function push_current_block_sourceprepend(source) {
-	block[cur_block, "source-prepend", block[cur_block, "source-prepend", ".length"]++] = source
-}
+#<block
+#Olength
+#Pcurrent_block
+#S_output
+#Kcur_block
+#K"output"
+#>
 
-function length_current_block_sourceprepend() {
-	return block[cur_block, "source-prepend", ".length"] + 0
-}
+#<block
+#Olastindex
+#Pcurrent_block
+#S_output
+#Icur_block
+#I"output"
+#>
 
-function get_current_block_sourceprepend(idx) {
-	return block[cur_block, "source-prepend", idx]
-}
+#<block
+#Oget
+#S_output
+#Ablock_name
+#Aidx
+#Kblock_name
+#K"output"
+#Kidx
+#>
 
-function push_chunk(name, target, \
-		idx) {
-	idx = chunk[".length"]++
-	chunk[idx, "name"] = name
-	chunk[idx, "target"] = target
-}
+#| ################ block chunk
+#|
 
-function length_chunk() {
-	return chunk[".length"] + 0
-}
+#<block
+#Opush
+#Pcurrent_block
+#S_chunk
+#Fname
+#Ftarget
+#Kcur_block
+#K"chunk"
+#>
 
-function get_chunk__target(idx) {
-	return chunk[idx, "target"]
-}
+#<block
+#Olength
+#Pcurrent_block
+#S_chunk
+#Kcur_block
+#K"chunk"
+#>
 
-function push_deferred(varname) {
-	deferred[deferred[".length"]++] = varname
-}
+#<block
+#Oget
+#Pcurrent_block
+#S_chunk__name
+#Aidx
+#Kcur_block
+#K"chunk"
+#Kidx
+#K"name"
+#>
 
-function length_deferred() {
-	return deferred[".length"] + 0
-}
+#<block
+#Oget
+#Pcurrent_block
+#S_chunk__target
+#Aidx
+#Kcur_block
+#K"chunk"
+#Kidx
+#K"target"
+#>
 
-function get_deferred(idx) {
-	return deferred[idx]
-}
+#| ################ block dependency
+#|
 
-function lastindex_deferred() {
-	return (deferred[".length"] + 0)
-}
+#<block
+#Opush
+#Pcurrent_block
+#S_dependency
+#Aname
+#Vname
+#Kcur_block
+#K"dependency"
+#>
 
+#<block
+#Olength
+#S_dependency
+#Ablock_name
+#Kblock_name
+#K"dependency"
+#>
+
+#<block
+#Oget
+#S_dependency
+#Ablock_name
+#Aidx
+#Kblock_name
+#K"dependency"
+#Kidx
+#>
+
+#| ################ block source
+#|
+
+#<block
+#Oget
+#S__source
+#Aname
+#Kname
+#K"source"
+#>
+
+#| ################ block source-prepend
+#|
+
+#<block
+#Opush
+#Pcurrent_block
+#S_sourceprepend
+#Asource
+#Vsource
+#Kcur_block
+#K"source-prepend"
+#>
+
+#<block
+#Olength
+#Pcurrent_block
+#S_sourceprepend
+#Kcur_block
+#K"source-prepend"
+#>
+
+#<block
+#Oget
+#Pcurrent_block
+#S_sourceprepend
+#Aidx
+#Kcur_block
+#K"source-prepend"
+#Kidx
+#>
+
+#| ################ chunk
+#|
+
+#<chunk
+#Opush
+#Fname
+#Ftarget
+#>
+
+#<chunk
+#Olength
+#>
+
+#<chunk
+#Oget
+#S__target
+#Aidx
+#Kidx
+#K"target"
+#>
+
+#| ################ deferred
+#|
+
+#<deferred
+#Opush
+#Avarname
+#Vvarname
+#>
+
+#<deferred
+#Olength
+#>
+
+#<deferred
+#Oget
+#Aidx
+#Kidx
+#>
+
+#<deferred
+#Olastindex
+#>

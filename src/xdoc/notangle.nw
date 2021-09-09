@@ -1,0 +1,6 @@
+<<comment>>=
+this is just a placeholder for effective notangle.1 sources
+
+source-prepend docdate.nw
+source-prepend manpage.nw
+source-prepend ../shell/noweave.nw

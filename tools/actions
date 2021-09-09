@@ -21,21 +21,23 @@ dependency realpath.c
 dependency realpath-main.c
 @
 
-=functions.awk
-,# note: this target is not built automatically
-,functions.awk: gen-functions.awk
-,	$(AWK) -vshowheader=1 -f gen-functions.awk < gen-functions.awk > .tmp.functions.awk
-,	$(MV) .tmp.functions.awk functions.awk
+=nofake
+,NOFAKE_OR_NOTANGLE = $(NOFAKE)
+#NOFAKE_OR_NOTANGLE = notangle
+,nofake: nofake.nw
+,	$(NOFAKE_OR_NOTANGLE) -Rnofake nofake.nw > .tmp.nofake
+,	$(MV) .tmp.nofake nofake
+,	$(CHMOD_0755) nofake
 @
 
 =gen-Makefile.awk
-,# note: this target is not built automatically
-,gen-Makefile.awk: functions.awk base-gen-Makefile.awk
-,	$(CAT) functions.awk > .tmp.gen-Makefile.awk
-,	$(ECHO) "# this file was generated from functions.awk and" >> .tmp.gen-Makefile.awk
-,	$(ECHO) "# base-gen-Makefile.awk, see actions for more information" >> .tmp.gen-Makefile.awk
-,	$(ECHO) "" >> .tmp.gen-Makefile.awk
-,	$(AWK) -f show-body.awk base-gen-Makefile.awk >> .tmp.gen-Makefile.awk
+,# note: this target is not built automatically since it is
+,#       critical to the bootstrapping process
+,gen-Makefile.awk: functions.awk gen-Makefile.nw $(NOFAKE)
+,	( set -eu; \
+,	    $(AWK) -f functions.awk < functions.awk; \
+,	    $(CAT) gen-Makefile.nw; \
+,	) | $(NOFAKE) > .tmp.gen-Makefile.awk
 ,	$(MV) .tmp.gen-Makefile.awk gen-Makefile.awk
 @
 

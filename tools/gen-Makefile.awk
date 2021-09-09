@@ -1,3 +1,5 @@
+# this file was generated from functions.awk and
+# gen-Makefile.nw, see actions for more information
 
 # Copyright (c) 2021, C. Tarbide.
 # All rights reserved.
@@ -7,10 +9,11 @@
 # notice is included in the copy.  This work is provided
 # as is, with no warranty of any kind.
 
-/^#@$/ { if (showheader) { showheader = 0; print; print "" } }
-{ if (showheader) print }
+# objective: generate portable Makefiles from a simple
+# description language
 
-#@
+
+################ block
 
 function push_block(name) {
 	block[block[".length"]++] = name
@@ -40,6 +43,8 @@ function set_current_block__source(source) {
 	return block[cur_block, "source"] = source
 }
 
+################ block output
+
 function push_block_output(name, value) {
 	sub(/^        /, "\t", value)
 	block[name, "output", block[name, "output", ".length"]++] = value
@@ -66,6 +71,8 @@ function get_block_output(block_name, idx) {
 	return block[block_name, "output", idx]
 }
 
+################ block chunk
+
 function push_current_block_chunk(name, target, \
 		idx) {
 	idx = block[cur_block, "chunk", ".length"]++
@@ -85,6 +92,8 @@ function get_current_block_chunk__target(idx) {
 	return block[cur_block, "chunk", idx, "target"]
 }
 
+################ block dependency
+
 function push_current_block_dependency(name) {
 	block[cur_block, "dependency", block[cur_block, "dependency", ".length"]++] = name
 }
@@ -97,9 +106,13 @@ function get_block_dependency(block_name, idx) {
 	return block[block_name, "dependency", idx]
 }
 
+################ block source
+
 function get_block__source(name) {
 	return block[name, "source"]
 }
+
+################ block source-prepend
 
 function push_current_block_sourceprepend(source) {
 	block[cur_block, "source-prepend", block[cur_block, "source-prepend", ".length"]++] = source
@@ -112,6 +125,8 @@ function length_current_block_sourceprepend() {
 function get_current_block_sourceprepend(idx) {
 	return block[cur_block, "source-prepend", idx]
 }
+
+################ chunk
 
 function push_chunk(name, target, \
 		idx) {
@@ -127,6 +142,8 @@ function length_chunk() {
 function get_chunk__target(idx) {
 	return chunk[idx, "target"]
 }
+
+################ deferred
 
 function push_deferred(varname) {
 	deferred[deferred[".length"]++] = varname
@@ -144,12 +161,6 @@ function lastindex_deferred() {
 	return (deferred[".length"] + 0)
 }
 
-# this file was generated from functions.awk and
-# base-gen-Makefile.awk, see actions for more information
-
-
-# objective: generate portable Makefiles from a simple
-# description language
 
 BEGIN{
 	objext = ENVIRON["OBJEXT"]
@@ -295,12 +306,12 @@ function prefix_dependencies(prefix, block_name) {
 		source_orig = get_block__source(cur_block)
 		if (length_current_block_sourceprepend()) {
 			source = "zz--" source_orig
+			source_resolved_path = source
 			source_deps = ""
 			i_len = length_current_block_sourceprepend()
 			for (i=0; i<i_len; i++) {
 				source_deps = source_deps " " get_current_block_sourceprepend(i)
 			}
-			source_resolved_path = source
 			push_current_block_output(source ": actions" source_deps " " source_orig)
 			push_current_block_output("\t$(CAT) " source_deps " \\\n\t    '" \
 				source_orig "' >'.tmp." source "'")
@@ -343,14 +354,14 @@ function prefix_dependencies(prefix, block_name) {
 }
 
 /^dependency[ \t]/ {
-	if (cur_type == "c-program") {
-		if (cur_block) {
+	if (cur_block) {
+		if (cur_type ~ "^(c-program|c-object)$") {
 			push_current_block_dependency($2)
-		} else {
-			print "# error: orphan dependency"
+	        } else if (cur_type) {
+			print "# error: exaustion: type: " cur_type
 		}
-        } else if (cur_type) {
-		print "# error: exaustion: type: " cur_type
+	} else {
+		print "# error: orphan dependency"
 	}
 }
 
@@ -540,3 +551,4 @@ END{
 		print ""
 	}
 }
+

@@ -40,11 +40,21 @@ source-prepend docdate.nw
 chunk * htmltoc.1
 @
 
-=manpage
+=noweb
 type nofake
-source manpage.nw
+source noweb.nw
 source-prepend docdate.nw
+source-prepend manpage.nw
 chunk noweb.1 noweb.1
+@
+
+=notangle
+type nofake
+source notangle.nw
+source-prepend docdate.nw
+source-prepend manpage.nw
+source-prepend ../shell/noweave.nw
+chunk notangle.1 notangle.1
 @
 
 =nodefs

@@ -2,7 +2,9 @@
 #
 # Generated from nofake.nw. Do not edit! Edit nofake.nw instead and
 # run nofake on it:
-#   ./nofake -Rnofake > nofake.pl && cp nofake.pl nofake
+#   ./nofake -Rnofake nofake.nw > nofake.pl
+#   mv nofake.pl nofake
+#   chmod a+x nofake
 #
 # The manual page is at the end of this file in Perl's
 # POD format. You can format it using pod2man(1):
@@ -106,7 +108,7 @@ sub read_file {
 }
 my %being_extracted = ();
 sub extract {
-    my ($len, $chunk) = @_;
+    my ($prefix, $chunk) = @_;
     if ($being_extracted{$chunk}) {
         Carp::croak("error: code chunk <<$chunk>> is used in its own definition.");
     }
@@ -120,9 +122,8 @@ sub extract {
             my $before = $1;
             my $chunkref = $2;
             my $after = $3;
-            my $indent = ' ' x length($before);
             if ($chunks_options{$chunkref}) {
-                my ($chunkreflnum, @chunkreflines) = extract($len + length($before), $chunkref);
+                my ($chunkreflnum, @chunkreflines) = extract($prefix . $before, $chunkref);
                 push(@res, [0, $chunkreflnum]) if $sync;
                 while (@chunkreflines and ref($chunkreflines[0])) {
                     # propagate special items early, before processing lines
@@ -130,15 +131,39 @@ sub extract {
                 }
                 if (@chunkreflines > 1) {
                     # many lines
+                    my $indent;
+                    my $before_has_content = $before !~ m{^\s*$};
+                    if ($before_has_content) {
+                        $indent = ' ' x length($before);
+                    } else {
+                        $indent = $before;
+                    }
                     my $first = shift(@chunkreflines);
                     my $last = pop(@chunkreflines);
-                    push(@res, $before . $first);
-                    push(@res, ref($_) ? $_ : $indent . $_) for (@chunkreflines);
+                    if ($before_has_content or $first ne "\n") {
+                        push(@res, $before . $first);
+                    } else {
+                        push(@res, "\n");
+                    }
+                    for (@chunkreflines) {
+                        if (ref($_)) {
+                            # deal with special items later
+                            push(@res, $_);
+                        } elsif ($_ ne "\n") {
+                            push(@res, $indent . $_);
+                        } else {
+                            # no need to indent an empty line
+                            push(@res, "\n");
+                        }
+                    }
                     if ($after) {
                         chomp($last);
                         push(@res, $indent . $last . $after . "\n");
-                    } else {
+                    } elsif ($last ne "\n") {
                         push(@res, $indent . $last);
+                    } else {
+                        # no need to indent an empty line
+                        push(@res, "\n");
                     }
                 } elsif (@chunkreflines) {
                     # just 1 line
@@ -146,7 +171,12 @@ sub extract {
                         chomp(my $tmp = $chunkreflines[0]);
                         push(@res, $before . $tmp . $after . "\n");
                     } else {
-                        push(@res, $before . $chunkreflines[0]);
+                        my $before_has_content = $before !~ m{^\s*$};
+                        if ($before_has_content or $chunkreflines[0] ne "\n") {
+                            push(@res, $before . $chunkreflines[0]);
+                        } else {
+                            push(@res, "\n");
+                        }
                     }
                 } else {
                     Carp::carp("warning: code chunk <<${chunkref}>> is empty");
@@ -191,8 +221,12 @@ while ($_ = shift(@ARGV)) {
 
 read_file($fname);
 
+if (!$chunks_options{$chunk}) {
+    Carp::croak("The root chunk <<${chunk}>> was not defined.");
+}
+
 {
-    my ($representative_line, @res) = extract(0, $chunk);
+    my ($representative_line, @res) = extract('', $chunk);
     local $\ = undef;
     print line_directive($fname, $representative_line) if $sync;
     for my $item (@res) {

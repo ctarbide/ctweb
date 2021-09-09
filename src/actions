@@ -1,11 +1,23 @@
 
 =all
 ,.PHONY: all
-,all: c
+,all: all-c all-shell all-tex
 @
 
-=c
-,.PHONY: c
-,c:
-,	$(MAKE) -C c
+=all-c
+,.PHONY: all-c
+,all-c:
+,	$(MAKE) -C c all
+@
+
+=all-shell
+,.PHONY: all-shell
+,all-shell:
+,	$(MAKE) -C shell all
+@
+
+=all-tex
+,.PHONY: all-tex
+,all-tex:
+,	$(MAKE) -C tex all
 @

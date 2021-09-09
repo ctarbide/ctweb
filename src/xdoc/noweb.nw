@@ -1,0 +1,5 @@
+<<comment>>=
+this is just a placeholder for effective noweb.1 sources
+
+source-prepend docdate.nw
+source-prepend manpage.nw

@@ -8,29 +8,28 @@ notice is included in the copy.  This work is provided
 as is, with no warranty of any kind.
 
 =local-vars
-,# TODO: nofake fails when passing -L, fix later
-,# NOFAKEFLAGS = -L
+,NOFAKEFLAGS = -L
 @
 
 =all
 ,.PHONY: all
-,all: $(NOFAKE_CHUNKS)
+,all: $(NOFAKE_CHUNKS) $(C_PROGRAMS)
 @
 
-=strsave
+=strsave.c
 type nofake
 source strsave.nw
 chunk header strsave.h
 chunk * strsave.c
 @
 
-=nwmktemp
+=nwmktemp.c
 type nofake
 source nwmktemp.nw
 chunk * nwmktemp.c
 @
 
-=match
+=match.c
 type nofake
 source match.nw
 chunk header match.h
@@ -41,98 +40,109 @@ chunk * match.c
 ,# TODO: type noweave
 @
 
-=columns
+=columns.c
 type nofake
 source columns.nw
 chunk header columns.h
 chunk * columns.c
 @
 
-=fakepretty
+=fakepretty.c
 type nofake
 source fakepretty.nw
 chunk * fakepretty.c
 @
 
-=modtrees
+=modtrees.c
 type nofake
 source modtrees.nw
 chunk header modtrees.h
 chunk * modtrees.c
 @
 
-=getline
+=getline.c
 type nofake
 source getline.nw
 chunk header getline.h
 chunk * getline.c
 @
 
-=main
+=main.c
 type nofake
 source main.nw
 chunk * main.c
 @
 
-=errors
+=errors.c
 type nofake
 source errors.nw
 chunk header errors.h
 chunk * errors.c
 @
 
-=mnt
+=mnt.c
 type nofake
 source mnt.nw
 chunk * mnt.c
 @
 
-=finduses
+=finduses.c
 type nofake
 source finduses.nw
 chunk * finduses.c
 @
 
-=notangle
+=notangle.c
 type nofake
 source notangle.nw
 chunk header notangle.h
 chunk * notangle.c
 @
 
-=markup
+=markup.c
 type nofake
 source markup.nw
 chunk header markup.h
 chunk * markup.c
 @
 
-=pretty
+=pretty.c
 type nofake
 source pretty.nw
 chunk header pretty.h
 chunk * pretty.c
 @
 
-=recognize
+=recognize.c
 type nofake
 source recognize.nw
 chunk header recognize.h
 chunk * recognize.c
 @
 
-=modules
+=modules.c
 type nofake
 source modules.nw
 chunk header modules.h
 chunk * modules.c
 @
 
-=markmain
-,# TODO: nofake is complaining, fix later
-,#type nofake
-,#source markmain.nw
-,#chunk * markmain.c
+=markmain.c
+type nofake
+source markmain.nw
+chunk * markmain.c
+@
+
+=modules.o
+type c-object
+dependency modules.c
+@
+
+=mnt
+#type c-program
+,# TODO: how to handle objects?
+#dependency modules.o
+#dependency mnt.c
 @
 
 =clean
