@@ -532,3 +532,4 @@ function gfl_join(sep, \
 
 #|
 #| ################ end of functions.awk
+#| @

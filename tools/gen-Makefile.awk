@@ -12,6 +12,17 @@
 # objective: generate portable Makefiles from a simple
 # description language
 
+BEGIN{
+	genbymsg = ENVIRON["GENERATED_BY_MESSAGE"]
+	vpath = ENVIRON["VPATH"]
+	subdir = ENVIRON["SUBDIR"]
+	top = ENVIRON["TOP"]
+	objext = ENVIRON["OBJEXT"]
+	if (!objext) { objext = "o" }
+	maxlinelen = 72
+	type_error = "!error"
+}
+
 ################ beginning of functions.awk
 
 ################ [block]
@@ -177,20 +188,10 @@ function lastindex_deferred() {
 
 ################ end of functions.awk
 
-BEGIN{
-	genbymsg = ENVIRON["GENERATED_BY_MESSAGE"]
-	vpath = ENVIRON["VPATH"]
-	subdir = ENVIRON["SUBDIR"]
-	top = ENVIRON["TOP"]
-	objext = ENVIRON["OBJEXT"]
-	if (!objext) { objext = "o" }
-	maxlinelen = 72
-	type_error = "!error"
-}
-
-/^=[a-zA-Z][a-zA-Z0-9\-_.]*$/ {
-	cur_block = substr($0, 2)
-	push_block(cur_block)
+function set_var_from_env_template(var, def, \
+		env) {
+	env = ENVIRON[var]
+	return var "=" (env ? env : def)
 }
 
 function push_chunk_custom(name, target) {
@@ -385,9 +386,31 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	return prefix join_recursive_dependencies(block_name, length(prefix))
 }
 
-/^,/ {	push_current_block_output(substr($0, 2)) }
+/^=[a-zA-Z][a-zA-Z0-9\-_.]*$/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
+	cur_block = substr($0, 2)
+	push_block(cur_block)
+}
+
+/^,/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
+	push_current_block_output(substr($0, 2))
+}
 
 /^type[ \t]/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
 	if (cur_block) {
 		cur_type = get_block__type(cur_block)
 		if (cur_type) {
@@ -407,6 +430,11 @@ function prefix_recursive_dependencies(prefix, block_name) {
 }
 
 /^dependency[ \t]/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
 	if (cur_block) {
 		if (cur_type ~ "^(c-program|c-object)$") {
 			push_current_block_dependency($2)
@@ -418,7 +446,12 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	}
 }
 
-/^source[ \t]+/ {
+/^source[ \t]/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			set_current_block__source($2)
@@ -430,7 +463,12 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	}
 }
 
-/^chunk[ \t]+/ {
+/^chunk[ \t]/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			name = $2    # the name inside noweb file
@@ -449,7 +487,12 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	}
 }
 
-/^source-prepend[ \t]+/ {
+/^source-prepend[ \t]/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			file = $2
@@ -466,7 +509,12 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	}
 }
 
-/^target-option[ \t]+/ {
+/^target-option[ \t]/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			target = $2
@@ -493,15 +541,14 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	}
 }
 
-function export(var, def, \
-		env) {
-	env = ENVIRON[var]
-	return var "=" (env ? env : def)
-}
-
 /^internal-vars$/ {
-	push_current_block_output(export("BUILD_AWK", "nawk"))
-	push_current_block_output(export("BUILD_MAKEFILE", "Makefile"))
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
+	push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
+	push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
 	push_current_block_output_deferred("OBJEXT")
 	push_current_block_output_deferred("SRC_PREFIX")
 	push_current_block_output_deferred("SRC_INCLUDE")
@@ -515,7 +562,29 @@ function export(var, def, \
 	push_current_block_output_deferred("NOFAKE_CHUNKS")
 }
 
+/^[ \t]*#/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
+	# print "# comment: " $0
+}
+
+/^$/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
+}
+
 /^@$/ {
+	if (found) {
+		print "# error: found ambiguous case: \"" $0 "\""
+	} else {
+		found = 1
+	}
 	if (cur_type == "c-program") {
 		num_of_deps = how_many_primary_dependencies(cur_block)
 		if (num_of_deps > 1) {
@@ -596,11 +665,20 @@ function export(var, def, \
 	cur_type = 0
 }
 
+{
+	if (!found) {
+		print "# warn: unprocessed line: \"" $0 "\""
+	} else {
+		found = 0
+	}
+}
+
 END{
-	print ""
 	print "# automatically generated, please to not edit"
-	if (genbymsg) { print "# " genbymsg }
-	print ""
+	if (genbymsg) {
+		print "# " genbymsg
+		print ""
+	}
 
 	tools_prefix = ""
 
