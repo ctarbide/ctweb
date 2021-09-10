@@ -121,6 +121,10 @@ function gfl_join(sep, \
 		print "function set_" fnameprefix fnamesuffix "(" args ") {"
 		print tabify("        return " sym "[" keys "] = " value)
 		print "}"
+	} else if (operation == "clear") {
+		print "function clear_" fnameprefix fnamesuffix "(" args ") {"
+		print tabify("        return " sym "[" (keys ? keys ", " : "" ) lprop "] = 0")
+		print "}"
 	} else if (operation == "lastindex") {
 		print "function lastindex_" fnameprefix fnamesuffix "(" args ") {"
 		print tabify("        return " (idx0 ? idx0 " SUBSEP " : "") "(" sym "[" (idx1 ? idx1 ", " : "" ) lprop "] + 0)")
@@ -130,8 +134,6 @@ function gfl_join(sep, \
 	} else {
 		print "# error: operation not defined"
 	}
-
-	print ""
 
 	sym = ""
 	operation = ""
@@ -149,9 +151,10 @@ function gfl_join(sep, \
 }
 
 #| <<functions awk>>=
+#| ################ beginning of functions.awk
 #|
 
-#| ################ block
+#| ################ [block]
 #|
 
 #<block
@@ -178,11 +181,23 @@ function gfl_join(sep, \
 #Vval
 #>
 
+#|
+#| ################ block type
+#|
+
 #<block
 #Oget
 #S__type
 #Aname
 #Kname
+#K"type"
+#>
+
+#<block
+#Oget
+#Pcurrent_block
+#S__type
+#Kcur_block
 #K"type"
 #>
 
@@ -196,17 +211,8 @@ function gfl_join(sep, \
 #K"type"
 #>
 
-#<block
-#Oset
-#Pcurrent_block
-#S__source
-#Asource
-#Vsource
-#Kcur_block
-#K"source"
-#>
-
-#| ################ block output
+#|
+#| ################ block [output]
 #|
 
 #<block
@@ -265,7 +271,8 @@ function gfl_join(sep, \
 #Kidx
 #>
 
-#| ################ block chunk
+#|
+#| ################ block [chunk]
 #|
 
 #<block
@@ -286,6 +293,10 @@ function gfl_join(sep, \
 #K"chunk"
 #>
 
+#|
+#| ################ block [chunk] name
+#|
+
 #<block
 #Oget
 #Pcurrent_block
@@ -296,6 +307,10 @@ function gfl_join(sep, \
 #Kidx
 #K"name"
 #>
+
+#|
+#| ################ block [chunk] target
+#|
 
 #<block
 #Oget
@@ -308,7 +323,38 @@ function gfl_join(sep, \
 #K"target"
 #>
 
-#| ################ block dependency
+#|
+#| ################ block target-option
+#|
+
+#<block
+#Oset
+#Pcurrent_block
+#S_targetoption
+#Atarget
+#Aoption
+#Avalue
+#Vvalue
+#Kcur_block
+#K"target-option"
+#Ktarget
+#Koption
+#>
+
+#<block
+#Oget
+#Pcurrent_block
+#S_targetoption
+#Atarget
+#Aoption
+#Kcur_block
+#K"target-option"
+#Ktarget
+#Koption
+#>
+
+#|
+#| ################ block [dependency]
 #|
 
 #<block
@@ -339,8 +385,59 @@ function gfl_join(sep, \
 #Kidx
 #>
 
+#|
+#| ################ block [recursive-dependency]
+#|
+
+#<block
+#Opush
+#S_recursivedependency
+#Ablock_name
+#Aname
+#Vname
+#Kblock_name
+#K"recursive-dependency"
+#>
+
+#<block
+#Olength
+#S_recursivedependency
+#Ablock_name
+#Kblock_name
+#K"recursive-dependency"
+#>
+
+#<block
+#Oclear
+#S_recursivedependency
+#Ablock_name
+#Kblock_name
+#K"recursive-dependency"
+#>
+
+#<block
+#Oget
+#S_recursivedependency
+#Ablock_name
+#Aidx
+#Kblock_name
+#K"recursive-dependency"
+#Kidx
+#>
+
+#|
 #| ################ block source
 #|
+
+#<block
+#Oset
+#Pcurrent_block
+#S__source
+#Asource
+#Vsource
+#Kcur_block
+#K"source"
+#>
 
 #<block
 #Oget
@@ -350,7 +447,8 @@ function gfl_join(sep, \
 #K"source"
 #>
 
-#| ################ block source-prepend
+#|
+#| ################ block [source-prepend]
 #|
 
 #<block
@@ -381,7 +479,8 @@ function gfl_join(sep, \
 #Kidx
 #>
 
-#| ################ chunk
+#|
+#| ################ [chunk]
 #|
 
 #<chunk
@@ -394,6 +493,8 @@ function gfl_join(sep, \
 #Olength
 #>
 
+# target is unique among blocks and chunks
+
 #<chunk
 #Oget
 #S__target
@@ -402,8 +503,12 @@ function gfl_join(sep, \
 #K"target"
 #>
 
-#| ################ deferred
 #|
+#| ################ [deferred]
+#|
+
+# lines that will be computed only on the last
+# moment, after all lines has been processed
 
 #<deferred
 #Opush
@@ -424,3 +529,6 @@ function gfl_join(sep, \
 #<deferred
 #Olastindex
 #>
+
+#|
+#| ################ end of functions.awk
