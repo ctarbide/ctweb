@@ -13,7 +13,8 @@
 ,CP = cp -f
 ,MV = mv -f
 ,RM = rm -f
-,CHMOD_0755 = chmod 0755
+,CHMOD_0555 = chmod 0555
+,CHMOD_0444 = chmod 0444
 
 ,SED = sed
 ,LEX = flex

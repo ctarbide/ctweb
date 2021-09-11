@@ -19,7 +19,7 @@ dependency realpath-main.c
 ,nofake: nofake.nw
 ,	$(NOFAKE_OR_NOTANGLE) -Rnofake nofake.nw > .tmp.nofake
 ,	$(MV) .tmp.nofake nofake
-,	$(CHMOD_0755) nofake
+,	$(CHMOD_0555) nofake
 @
 
 =gen-Makefile.awk
@@ -31,6 +31,7 @@ dependency realpath-main.c
 ,	    $(CAT) gen-Makefile.nw; \
 ,	) | $(NOFAKE) > .tmp.gen-Makefile.awk
 ,	$(MV) .tmp.gen-Makefile.awk gen-Makefile.awk
+,	$(CHMOD_0444) gen-Makefile.awk
 @
 
 =clean

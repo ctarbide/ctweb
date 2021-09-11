@@ -256,7 +256,6 @@ chunk is read and expanded when then chunk itself is expanded.
 my $lineformat = '#line %L "%F"%N';   #default format for #line directive
 my $sync = 0;                         #default: do not emit #line directives
 
-my $fname = '';                       #file name of noweb file
 my $chunk = '*';                      #default chunk to extract
 my %chunks = ();                      #hash table for chunks
 my %chunks_options = ();              #hash table for chunks options
@@ -293,6 +292,12 @@ chunk definitions. Each chunk is put under its name into the global
 [[chunks]] hash table. The [[sync]] flag controls whether line
 directives are emitted.
 
+Relevant [[man noweb]] section: Documentation chunks begin with
+a line that starts with an at sign ([[@]]) followed by a space
+or newline.
+
+<<read line vars>>=
+my $chunk = '';
 <<read line>>=
 if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
     $chunk = $1;
@@ -301,30 +306,21 @@ if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
     }
     $chunks_options{$chunk}->{nchunks}++;
 } elsif ($chunk) {
-    #inside @<<foo@>>= ... @ chunk
     if ($line =~ m{^\@$}) {
-        # noweb.1: ... at sign (@) followed by a newline
         $chunk = '';
     } elsif ($line =~ m{^\@\s}) {
-        # noweb.1: ... at sign (@) followed by a space
         $chunk = '';
     } else {
         # regular line inside chunk
-        set_many(%chunks, $chunk, $., $line . "\n");
+        set_many(%chunks, $chunk, $ARGV, $., $line . "\n");
     }
 } # else outside chunk - nothing to do
 @
 
 <<read file>>=
 sub read_file {
-    my ($fname) = @_;
-    local @ARGV = ();
-    if ($fname =~ m{^(-|)$}) {
-        push(@ARGV, '-');
-    } else {
-        push(@ARGV, $fname);
-    }
-    my $chunk = '';
+    local @ARGV = @_;
+    <<read line vars>>
     while (my $line = <>) {
         chomp($line);
         <<read line>>
@@ -355,13 +351,34 @@ if ($before_has_content) {
 }
 @
 
-<<extract and process chunk reference>>=
-my ($chunkreflnum, @chunkreflines) = extract($prefix . $before, $chunkref);
-push(@res, [0, $chunkreflnum]) if $sync;
+Special item [[0]] is a line directive, at the chunk
+reference preamble.
+
+<<push line at chunk preamble>>=
+push(@res, [0, $fname, $chunkreflnum]);
+@
+
+Special item [[1]] is also line directive, but at the chunk
+reference epilog.
+
+<<push line after chunk reference>>=
+push(@res, [1, $fname, $lnum]);
+@
+
+These special items will be processed at the top level, after all
+files have been read.
+
+<<propagate header special items>>=
 while (@chunkreflines and ref($chunkreflines[0])) {
     # propagate special items early, before processing lines
     push(@res, shift(@chunkreflines));
 }
+@
+
+<<extract and process chunk reference>>=
+my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $chunkref);
+if ($sync) { <<push line at chunk preamble>> }
+<<propagate header special items>>
 if (@chunkreflines > 1) {
     # many lines
     <<setup $indent and $before_has_content>>
@@ -406,10 +423,12 @@ if (@chunkreflines > 1) {
         }
     }
 } else {
-    Carp::carp("warning: code chunk @<<${chunkref}@>> is empty");
+    Carp::carp("warning: code chunk @<<${chunkref}@>> is empty (at ${fname}:${lnum}).");
 }
 @
 
+<<process line vars>>=
+my $lnum_show_next = 0;
 <<process line>>=
 if ($line =~ /^(|.*?[^\@])@<<(.*?[^\@])@>>(.*)$/o) {
     my $before = $1;
@@ -419,11 +438,11 @@ if ($line =~ /^(|.*?[^\@])@<<(.*?[^\@])@>>(.*)$/o) {
         <<extract and process chunk reference>>
         $lnum_show_next = 1;
     } else {
-        Carp::carp("warning: code chunk @<<${chunkref}@>> does not exist.");
+        Carp::carp("warning: code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
     }
 } else {
     if ($sync && $lnum_show_next) {
-        push(@res, [1, $lnum]);
+	<<push line after chunk reference>>
         $lnum_show_next = 0;
     }
     $line =~ s/\@(@<<|@>>)/$1/og;
@@ -440,14 +459,15 @@ sub extract {
     }
     $being_extracted{$chunk}++;
     my @res = ();
-    my $lnum_show_next = 0;
     my @input = get_many($chunks{$chunk});
-    my $representative_line = $input[0] if @input;
-    while (my ($lnum, $line) = splice(@input, 0, 2)) {
+    my $representative_fname = $input[0] if @input;
+    my $representative_lnum = $input[1] if @input;
+    <<process line vars>>
+    while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
         <<process line>>
     }
     $being_extracted{$chunk}--;
-    return $representative_line, @res;
+    return $representative_fname, $representative_lnum, @res;
 }
 @
 
@@ -467,28 +487,34 @@ sub usage {
 EOF
 }
 
+my @files = ();
+
 while ($_ = shift(@ARGV)) {
     if (/^\-L(.*)/)             { $sync = 1; if ($1 ne '') { $lineformat = $1 }}
     elsif (/^\-R(.+)/)          { $chunk = $1 }
     elsif (/^\-(v|-version)$/)  { version(); exit(0) }
     elsif (/^\-filter$/)        { shift(@ARGV) }  # ignore
     elsif (/^(\-.*)$/)          { usage($1); exit(1) }
-    else                        { $fname = $_ }
+    else                        { push(@files, $_) }
 }
 
-read_file($fname);
+if (!@files) {
+    push(@files, '-');
+}
+
+read_file($_) for @files;
 
 if (!$chunks_options{$chunk}) {
     Carp::croak("The root chunk @<<${chunk}@>> was not defined.");
 }
 
 {
-    my ($representative_line, @res) = extract('', $chunk);
+    my ($representative_fname, $representative_lnum, @res) = extract('', $chunk);
     local $\ = undef;
-    print line_directive($fname, $representative_line) if $sync;
+    print line_directive($representative_fname, $representative_lnum) if $sync;
     for my $item (@res) {
         if (ref($item) eq 'ARRAY') {
-            print line_directive($fname, $item->[1]);
+            print line_directive($item->[1], $item->[2]);
         } else {
             print $item;
         }

@@ -387,30 +387,20 @@ function prefix_recursive_dependencies(prefix, block_name) {
 }
 
 /^=[a-zA-Z][a-zA-Z0-9\-_.]*$/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	cur_block = substr($0, 2)
 	push_block(cur_block)
+	next
 }
 
 /^,/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	push_current_block_output(substr($0, 2))
+	next
 }
 
 /^type[ \t]/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	if (cur_block) {
 		cur_type = get_block__type(cur_block)
 		if (cur_type) {
@@ -427,14 +417,11 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	} else {
 		print "# error: orphan type"
 	}
+	next
 }
 
 /^dependency[ \t]/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	if (cur_block) {
 		if (cur_type ~ "^(c-program|c-object)$") {
 			push_current_block_dependency($2)
@@ -444,14 +431,11 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	} else {
 		print "# error: orphan dependency"
 	}
+	next
 }
 
 /^source[ \t]/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			set_current_block__source($2)
@@ -461,14 +445,11 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	} else {
 		print "# error: orphan source"
 	}
+	next
 }
 
 /^chunk[ \t]/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			name = $2    # the name inside noweb file
@@ -485,14 +466,11 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	} else {
 		print "# error: orphan chunk"
 	}
+	next
 }
 
 /^source-prepend[ \t]/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			file = $2
@@ -507,14 +485,11 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	} else {
 		print "# error: orphan chunk"
 	}
+	next
 }
 
 /^target-option[ \t]/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			target = $2
@@ -539,14 +514,11 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	} else {
 		print "# error: orphan chunk"
 	}
+	next
 }
 
 /^internal-vars$/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
 	push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
 	push_current_block_output_deferred("OBJEXT")
@@ -560,31 +532,22 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	push_current_block_output_deferred("C_PROGRAMS")
 	push_current_block_output_deferred("NOFAKE_SOURCES")
 	push_current_block_output_deferred("NOFAKE_CHUNKS")
+	next
 }
 
 /^[ \t]*#/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	# print "# comment: " $0
+	next
 }
 
 /^$/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
+	next
 }
 
 /^@$/ {
-	if (found) {
-		print "# error: found ambiguous case: \"" $0 "\""
-	} else {
-		found = 1
-	}
+	# preamble
 	if (cur_type == "c-program") {
 		num_of_deps = how_many_primary_dependencies(cur_block)
 		if (num_of_deps > 1) {
@@ -635,7 +598,7 @@ function prefix_recursive_dependencies(prefix, block_name) {
 					"' $(NOFAKEFLAGS) '" source_resolved_path "' > '.tmp." target "'")
 				push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
 				if (get_current_block_targetoption(target, "executable")) {
-					push_current_block_output("\t$(CHMOD_0755) '" target "'")
+					push_current_block_output("\t$(CHMOD_0555) '" target "'")
 				}
 			}
 		}
@@ -663,6 +626,7 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	}
 	cur_block = 0
 	cur_type = 0
+	next
 }
 
 {
