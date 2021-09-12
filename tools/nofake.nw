@@ -239,6 +239,7 @@ EOF
 <<extract>>
 
 <<process command line and extract chunk>>
+
 __END__
 
 <<manual page in POD format>>
@@ -375,8 +376,18 @@ while (@chunkreflines and ref($chunkreflines[0])) {
 }
 @
 
+<<process chunk reference>>=
+my $line_new = undef;
+<<extract and process chunk reference>>
+if (defined($line_new)) {
+    $line = $line_new;
+} else {
+    last;
+}
+@
+
 <<extract and process chunk reference>>=
-my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $chunkref);
+my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $fname, $lnum, $chunkref);
 if ($sync) { <<push line at chunk preamble>> }
 <<propagate header special items>>
 if (@chunkreflines > 1) {
@@ -402,7 +413,7 @@ if (@chunkreflines > 1) {
     }
     if ($after) {
         chomp($last);
-        push(@res, $indent . $last . $after . "\n");
+        $line_new = $indent . $last . $after . "\n";
     } elsif ($last ne "\n") {
         push(@res, $indent . $last);
     } else {
@@ -413,7 +424,7 @@ if (@chunkreflines > 1) {
     # just 1 line
     if ($after) {
         chomp(my $tmp = $chunkreflines[0]);
-        push(@res, $before . $tmp . $after . "\n");
+        $line_new = $before . $tmp . $after . "\n";
     } else {
         <<setup $before_has_content>>
         if ($before_has_content or $chunkreflines[0] ne "\n") {
@@ -430,32 +441,37 @@ if (@chunkreflines > 1) {
 <<process line vars>>=
 my $lnum_show_next = 0;
 <<process line>>=
-if ($line =~ /^(|.*?[^\@])@<<(.*?[^\@])@>>(.*)$/o) {
-    my $before = $1;
-    my $chunkref = $2;
-    my $after = $3;
-    if ($chunks_options{$chunkref}) {
-        <<extract and process chunk reference>>
+my $found_chunk_ref;
+for (;;) {
+    $found_chunk_ref = ($line =~ /^(|.*?[^\@])@<<(.*?[^\@])@>>(.*)$/o);
+    if ($found_chunk_ref) {
+        my $before = $1;
+        my $chunkref = $2;
+        my $after = $3;
+        if ($chunks_options{$chunkref}) {
+            <<process chunk reference>>
+        } else {
+            Carp::carp("warning: code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
+        }
         $lnum_show_next = 1;
     } else {
-        Carp::carp("warning: code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
+        if ($sync && $lnum_show_next) {
+            <<push line after chunk reference>>
+            $lnum_show_next = 0;
+        }
+        $line =~ s/\@(@<<|@>>)/$1/og;
+        push(@res, $line);
+        last;
     }
-} else {
-    if ($sync && $lnum_show_next) {
-	<<push line after chunk reference>>
-        $lnum_show_next = 0;
-    }
-    $line =~ s/\@(@<<|@>>)/$1/og;
-    push(@res, $line);
 }
 @
 
 <<extract>>=
 my %being_extracted = ();
 sub extract {
-    my ($prefix, $chunk) = @_;
+    my ($prefix, $parent_fname, $parent_lnum, $chunk) = @_;
     if ($being_extracted{$chunk}) {
-        Carp::croak("error: code chunk @<<$chunk@>> is used in its own definition.");
+        Carp::croak("error: code chunk @<<$chunk@>> is used in its own definition (at ${parent_fname}:${parent_lnum}).");
     }
     $being_extracted{$chunk}++;
     my @res = ();
@@ -508,8 +524,19 @@ if (!$chunks_options{$chunk}) {
     Carp::croak("The root chunk @<<${chunk}@>> was not defined.");
 }
 
+<<output lines>>
+@
+
+<<get first file name and first line number>>=
+my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+@
+
+Create an anonymous block to contain local vars.
+
+<<output lines>>=
 {
-    my ($representative_fname, $representative_lnum, @res) = extract('', $chunk);
+    <<get first file name and first line number>>
+    my ($representative_fname, $representative_lnum, @res) = extract('', $first_fname, $first_lnum, $chunk);
     local $\ = undef;
     print line_directive($representative_fname, $representative_lnum) if $sync;
     for my $item (@res) {
@@ -520,7 +547,6 @@ if (!$chunks_options{$chunk}) {
         }
     }
 }
-
 @
 
 <<many utils>>=

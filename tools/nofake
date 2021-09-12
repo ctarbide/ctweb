@@ -98,9 +98,9 @@ sub read_file {
 }
 my %being_extracted = ();
 sub extract {
-    my ($prefix, $chunk) = @_;
+    my ($prefix, $parent_fname, $parent_lnum, $chunk) = @_;
     if ($being_extracted{$chunk}) {
-        Carp::croak("error: code chunk <<$chunk>> is used in its own definition.");
+        Carp::croak("error: code chunk <<$chunk>> is used in its own definition (at ${parent_fname}:${parent_lnum}).");
     }
     $being_extracted{$chunk}++;
     my @res = ();
@@ -109,80 +109,91 @@ sub extract {
     my $representative_lnum = $input[1] if @input;
     my $lnum_show_next = 0;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
-        if ($line =~ /^(|.*?[^\@])<<(.*?[^\@])>>(.*)$/o) {
-            my $before = $1;
-            my $chunkref = $2;
-            my $after = $3;
-            if ($chunks_options{$chunkref}) {
-                my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $chunkref);
-                if ($sync) { push(@res, [0, $fname, $chunkreflnum]); }
-                while (@chunkreflines and ref($chunkreflines[0])) {
-                    # propagate special items early, before processing lines
-                    push(@res, shift(@chunkreflines));
-                }
-                if (@chunkreflines > 1) {
-                    # many lines
-                    my $indent;
-                    my $before_has_content = $before !~ m{^\s*$};
-                    if ($before_has_content) {
-                        $indent = ' ' x length($before);
-                    } else {
-                        $indent = $before;
+        my $found_chunk_ref;
+        for (;;) {
+            $found_chunk_ref = ($line =~ /^(|.*?[^\@])<<(.*?[^\@])>>(.*)$/o);
+            if ($found_chunk_ref) {
+                my $before = $1;
+                my $chunkref = $2;
+                my $after = $3;
+                if ($chunks_options{$chunkref}) {
+                    my $line_new = undef;
+                    my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $fname, $lnum, $chunkref);
+                    if ($sync) { push(@res, [0, $fname, $chunkreflnum]); }
+                    while (@chunkreflines and ref($chunkreflines[0])) {
+                        # propagate special items early, before processing lines
+                        push(@res, shift(@chunkreflines));
                     }
-                    my $first = shift(@chunkreflines);
-                    my $last = pop(@chunkreflines);
-                    if ($before_has_content or $first ne "\n") {
-                        push(@res, $before . $first);
-                    } else {
-                        push(@res, "\n");
-                    }
-                    for (@chunkreflines) {
-                        if (ref($_)) {
-                            # deal with special items later
-                            push(@res, $_);
-                        } elsif ($_ ne "\n") {
-                            push(@res, $indent . $_);
+                    if (@chunkreflines > 1) {
+                        # many lines
+                        my $indent;
+                        my $before_has_content = $before !~ m{^\s*$};
+                        if ($before_has_content) {
+                            $indent = ' ' x length($before);
+                        } else {
+                            $indent = $before;
+                        }
+                        my $first = shift(@chunkreflines);
+                        my $last = pop(@chunkreflines);
+                        if ($before_has_content or $first ne "\n") {
+                            push(@res, $before . $first);
+                        } else {
+                            push(@res, "\n");
+                        }
+                        for (@chunkreflines) {
+                            if (ref($_)) {
+                                # deal with special items later
+                                push(@res, $_);
+                            } elsif ($_ ne "\n") {
+                                push(@res, $indent . $_);
+                            } else {
+                                # no need to indent an empty line
+                                push(@res, "\n");
+                            }
+                        }
+                        if ($after) {
+                            chomp($last);
+                            $line_new = $indent . $last . $after . "\n";
+                        } elsif ($last ne "\n") {
+                            push(@res, $indent . $last);
                         } else {
                             # no need to indent an empty line
                             push(@res, "\n");
                         }
-                    }
-                    if ($after) {
-                        chomp($last);
-                        push(@res, $indent . $last . $after . "\n");
-                    } elsif ($last ne "\n") {
-                        push(@res, $indent . $last);
-                    } else {
-                        # no need to indent an empty line
-                        push(@res, "\n");
-                    }
-                } elsif (@chunkreflines) {
-                    # just 1 line
-                    if ($after) {
-                        chomp(my $tmp = $chunkreflines[0]);
-                        push(@res, $before . $tmp . $after . "\n");
-                    } else {
-                        my $before_has_content = $before !~ m{^\s*$};
-                        if ($before_has_content or $chunkreflines[0] ne "\n") {
-                            push(@res, $before . $chunkreflines[0]);
+                    } elsif (@chunkreflines) {
+                        # just 1 line
+                        if ($after) {
+                            chomp(my $tmp = $chunkreflines[0]);
+                            $line_new = $before . $tmp . $after . "\n";
                         } else {
-                            push(@res, "\n");
+                            my $before_has_content = $before !~ m{^\s*$};
+                            if ($before_has_content or $chunkreflines[0] ne "\n") {
+                                push(@res, $before . $chunkreflines[0]);
+                            } else {
+                                push(@res, "\n");
+                            }
                         }
+                    } else {
+                        Carp::carp("warning: code chunk <<${chunkref}>> is empty (at ${fname}:${lnum}).");
+                    }
+                    if (defined($line_new)) {
+                        $line = $line_new;
+                    } else {
+                        last;
                     }
                 } else {
-                    Carp::carp("warning: code chunk <<${chunkref}>> is empty (at ${fname}:${lnum}).");
+                    Carp::carp("warning: code chunk <<${chunkref}>> does not exist (at ${fname}:${lnum}).");
                 }
                 $lnum_show_next = 1;
             } else {
-                Carp::carp("warning: code chunk <<${chunkref}>> does not exist (at ${fname}:${lnum}).");
+                if ($sync && $lnum_show_next) {
+                    push(@res, [1, $fname, $lnum]);
+                    $lnum_show_next = 0;
+                }
+                $line =~ s/\@(<<|>>)/$1/og;
+                push(@res, $line);
+                last;
             }
-        } else {
-            if ($sync && $lnum_show_next) {
-                push(@res, [1, $fname, $lnum]);
-                $lnum_show_next = 0;
-            }
-            $line =~ s/\@(<<|>>)/$1/og;
-            push(@res, $line);
         }
     }
     $being_extracted{$chunk}--;
@@ -223,7 +234,8 @@ if (!$chunks_options{$chunk}) {
 }
 
 {
-    my ($representative_fname, $representative_lnum, @res) = extract('', $chunk);
+    my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+    my ($representative_fname, $representative_lnum, @res) = extract('', $first_fname, $first_lnum, $chunk);
     local $\ = undef;
     print line_directive($representative_fname, $representative_lnum) if $sync;
     for my $item (@res) {
