@@ -452,6 +452,7 @@ for (;;) {
             <<process chunk reference>>
         } else {
             Carp::carp("warning: code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
+            last;
         }
         $lnum_show_next = 1;
     } else {
