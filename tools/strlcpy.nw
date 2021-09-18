@@ -1,3 +1,30 @@
+
+<<changes.1>>=
+
+- removed DEF_WEAK(strlcpy);
+
+<<strlcpy function prototype>>=
+size_t strlcpy(char *dst, const char *src, size_t dsize)
+@
+
+<<header>>=
+<<strlcpy function prototype>>;
+@
+
+<<includes>>=
+#include <sys/types.h>
+#include <string.h>
+@
+
+<<modifications notice in code>>=
+/*
+ * minor modifications to better fit in the build system
+ *  -- ctarbide
+ *
+ */
+@
+
+<<copy>>=
 /*	$OpenBSD: strlcpy.c,v 1.16 2019/01/25 00:19:25 millert Exp $	*/
 
 /*
@@ -15,17 +42,21 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+@
 
-#include <sys/types.h>
-#include <string.h>
+<<*>>=
+<<copy>>
+
+<<modifications notice in code>>
+
+<<includes>>
 
 /*
  * Copy string src to buffer dst of size dsize.  At most dsize-1
  * chars will be copied.  Always NUL terminates (unless dsize == 0).
  * Returns strlen(src); if retval >= dsize, truncation occurred.
  */
-size_t
-strlcpy(char *dst, const char *src, size_t dsize)
+<<strlcpy function prototype>>
 {
 	const char *osrc = src;
 	size_t nleft = dsize;
@@ -48,4 +79,4 @@ strlcpy(char *dst, const char *src, size_t dsize)
 
 	return(src - osrc - 1);	/* count does not include NUL */
 }
-DEF_WEAK(strlcpy);
+@

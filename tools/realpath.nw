@@ -1,3 +1,21 @@
+
+<<realpath function prototype>>=
+char *realpath(const char *path, char *resolved)
+@
+
+<<header>>=
+<<realpath function prototype>>;
+@
+
+<<includes>>=
+#include <errno.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <limits.h>
+@
+
+<<copy>>=
 /*	$OpenBSD: realpath.c,v 1.22 2017/12/24 01:50:50 millert Exp $ */
 /*
  * Copyright (c) 2003 Constantin S. Svintsoff <kostik@iclub.nsu.ru>
@@ -26,12 +44,12 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  */
+@
 
-#include <errno.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <limits.h>
+<<*>>=
+<<copy>>
+
+<<includes>>
 
 /* A slightly modified copy of this file exists in libexec/ld.so */
 
@@ -42,8 +60,7 @@
  * components.  Returns (resolved) on success, or (NULL) on failure,
  * in which case the path which caused trouble is left in (resolved).
  */
-char *
-realpath(const char *path, char *resolved)
+<<realpath function prototype>>
 {
 	const char *p;
 	char *q;
@@ -231,3 +248,4 @@ err:
 		free(resolved);
 	return (NULL);
 }
+@

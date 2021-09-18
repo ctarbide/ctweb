@@ -28,66 +28,66 @@ source docdate.nw
 =htmltoc
 type nofake
 source htmltoc.nw
-source-prepend docdate.nw
+source docdate.nw
 chunk * htmltoc.1
 @
 
 =noweb
 type nofake
 source noweb.nw
-source-prepend docdate.nw
-source-prepend manpage.nw
+source docdate.nw
+source manpage.nw
 chunk noweb.1 noweb.1
 @
 
 =notangle
 type nofake
 source notangle.nw
-source-prepend docdate.nw
-source-prepend manpage.nw
-source-prepend ../shell/noweave.nw
+source docdate.nw
+source manpage.nw
+source ../shell/noweave.nw
 chunk notangle.1 notangle.1
 @
 
 =nodefs
 type nofake
 source nodefs.nw
-source-prepend docdate.nw
+source docdate.nw
 chunk * nodefs.1
 @
 
 =noindex
 type nofake
 source noindex.nw
-source-prepend docdate.nw
+source docdate.nw
 chunk * noindex.1
 @
 
 =noroff
 type nofake
 source noroff.nw
-source-prepend docdate.nw
+source docdate.nw
 chunk * noroff.1
 @
 
 =noroots
 type nofake
 source noroots.nw
-source-prepend docdate.nw
+source docdate.nw
 chunk * noroots.1
 @
 
 =nowebfilters
 type nofake
 source nowebfilters.nw
-source-prepend docdate.nw
+source docdate.nw
 chunk * nowebfilters.1
 @
 
 =sl2h
 type nofake
 source sl2h.nw
-source-prepend docdate.nw
+source docdate.nw
 chunk * sl2h.1
 @
 

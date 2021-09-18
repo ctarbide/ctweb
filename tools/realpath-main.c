@@ -1,4 +1,11 @@
 
+/* TODO: decide how to differentiate primary dependencies with and without
+ * source concatenation in the build system
+
+#include "config.h"
+#include "protos.h"
+ */
+
 int main(int argc, char **argv)
 {
 	char resolved[INTERNAL_PATH_MAX];

@@ -1,3 +1,30 @@
+
+<<changes.1>>=
+
+- removed DEF_WEAK(strlcat);
+
+<<strlcat function prototype>>=
+size_t strlcat(char *dst, const char *src, size_t dsize)
+@
+
+<<header>>=
+<<strlcat function prototype>>;
+@
+
+<<includes>>=
+#include <sys/types.h>
+#include <string.h>
+@
+
+<<modifications notice in code>>=
+/*
+ * minor modifications to better fit in the build system
+ *  -- ctarbide
+ *
+ */
+@
+
+<<copy>>=
 /*	$OpenBSD: strlcat.c,v 1.19 2019/01/25 00:19:25 millert Exp $	*/
 
 /*
@@ -15,9 +42,14 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+@
 
-#include <sys/types.h>
-#include <string.h>
+<<*>>=
+<<copy>>
+
+<<modifications notice in code>>
+
+<<includes>>
 
 /*
  * Appends src to string dst of size dsize (unlike strncat, dsize is the
@@ -26,8 +58,7 @@
  * Returns strlen(src) + MIN(dsize, strlen(initial dst)).
  * If retval >= dsize, truncation occurred.
  */
-size_t
-strlcat(char *dst, const char *src, size_t dsize)
+<<strlcat function prototype>>
 {
 	const char *odst = dst;
 	const char *osrc = src;
@@ -53,4 +84,4 @@ strlcat(char *dst, const char *src, size_t dsize)
 
 	return(dlen + (src - osrc));	/* count does not include NUL */
 }
-DEF_WEAK(strlcat);
+@

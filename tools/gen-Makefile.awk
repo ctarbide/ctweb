@@ -120,40 +120,16 @@ function get_block_dependency(block_name, idx) {
 	return block[block_name, "dependency", idx]
 }
 
-################ block [recursive-dependency]
+################ block [source]
 
-function push_block_recursivedependency(block_name, name) {
-	block[block_name, "recursive-dependency", block[block_name, "recursive-dependency", ".length"]++] = name
+function push_current_block_source(source) {
+	block[cur_block, "source", block[cur_block, "source", ".length"]++] = source
 }
-function length_block_recursivedependency(block_name) {
-	return block[block_name, "recursive-dependency", ".length"] + 0
+function length_block_source(block_name) {
+	return block[block_name, "source", ".length"] + 0
 }
-function clear_block_recursivedependency(block_name) {
-	return block[block_name, "recursive-dependency", ".length"] = 0
-}
-function get_block_recursivedependency(block_name, idx) {
-	return block[block_name, "recursive-dependency", idx]
-}
-
-################ block source
-
-function set_current_block__source(source) {
-	return block[cur_block, "source"] = source
-}
-function get_block__source(name) {
-	return block[name, "source"]
-}
-
-################ block [source-prepend]
-
-function push_current_block_sourceprepend(source) {
-	block[cur_block, "source-prepend", block[cur_block, "source-prepend", ".length"]++] = source
-}
-function length_current_block_sourceprepend() {
-	return block[cur_block, "source-prepend", ".length"] + 0
-}
-function get_current_block_sourceprepend(idx) {
-	return block[cur_block, "source-prepend", idx]
+function get_block_source(block_name, idx) {
+	return block[block_name, "source", idx]
 }
 
 ################ [chunk]
@@ -184,6 +160,24 @@ function get_deferred(idx) {
 }
 function lastindex_deferred() {
 	return (deferred[".length"] + 0)
+}
+
+################ [gl0]
+
+function push_gl0(item) {
+	gl0[gl0[".length"]++] = item
+}
+function length_gl0() {
+	return gl0[".length"] + 0
+}
+function get_gl0(idx) {
+	return gl0[idx]
+}
+function lastindex_gl0() {
+	return (gl0[".length"] + 0)
+}
+function clear_gl0() {
+	return gl0[".length"] = 0
 }
 
 ################ end of functions.awk
@@ -257,22 +251,80 @@ function join_nofake_chunks(curlinelen, \
 function prefix_nofake_chunks(prefix) {
 	return prefix join_nofake_chunks(length(prefix))
 }
-
-function compute_recursive_dependencies(acc, block_name, i, i_len, \
-		item, type) {
-	while (i < i_len) {
+function join_c_objects(block_name, curlinelen, new_line_prefix, \
+		res, i, i_len, item, itemlen, type) {
+	res = ""
+	if (!new_line_prefix) {
+		new_line_prefix = "    "
+	}
+	new_line_prefix_len = length(new_line_prefix)
+	i_len = length_block_dependency(block_name)
+	for (i=0; i<i_len; i++) {
 		item = get_block_dependency(block_name, i)
 		type = get_block__type(item)
-		if (type == "c-object") {
-			push_block_recursivedependency(acc, item "." objext)
-			compute_recursive_dependencies(acc, item, 0, length_block_dependency(item))
-		} else {
-			push_block_recursivedependency(acc, item)
+		if (type != "c-object") {
+			continue;
 		}
-		i++
+		item = item "." objext
+		itemlen = length(item)
+		curlinelen += 1 + itemlen
+		# + 2 to account for the possibility of " \\"
+		if ((curlinelen + 2) > maxlinelen) {
+			res = res " \\\n" new_line_prefix item
+			curlinelen = new_line_prefix_len + itemlen
+		} else {
+			res = res " " item
+		}
 	}
+	return res
 }
-
+function join_sources(block_name, curlinelen, new_line_prefix, \
+		res, i, i_len, item, itemlen) {
+	res = ""
+	if (!new_line_prefix) {
+		new_line_prefix = "    "
+	}
+	new_line_prefix_len = length(new_line_prefix)
+	i_len = length_block_source(block_name)
+	for (i=0; i<i_len; i++) {
+		item = get_block_source(block_name, i)
+		itemlen = length(item)
+		curlinelen += 1 + itemlen
+		# + 2 to account for the possibility of " \\"
+		if ((curlinelen + 2) > maxlinelen) {
+			res = res " \\\n" new_line_prefix item
+			curlinelen = new_line_prefix_len + itemlen
+		} else {
+			res = res " " item
+		}
+	}
+	return res
+}
+function join_gl0(curlinelen, new_line_prefix, \
+		res, i, i_len, item, itemlen) {
+	res = ""
+	if (!new_line_prefix) {
+		new_line_prefix = "    "
+	}
+	new_line_prefix_len = length(new_line_prefix)
+	i_len = length_gl0()
+	for (i=0; i<i_len; i++) {
+		item = get_gl0(i)
+		itemlen = length(item)
+		curlinelen += 1 + itemlen
+		# + 2 to account for the possibility of " \\"
+		if ((curlinelen + 2) > maxlinelen) {
+			res = res " \\\n" new_line_prefix item
+			curlinelen = new_line_prefix_len + itemlen
+		} else {
+			res = res " " item
+		}
+	}
+	return res
+}
+function prefix_gl0(prefix, new_line_prefix) {
+	return prefix join_gl0(length(prefix), new_line_prefix)
+}
 function how_many_primary_dependencies(block_name, \
 		res, i, i_len, item) {
 	res = 0
@@ -295,10 +347,13 @@ function how_many_primary_dependencies(block_name, \
 	}
 	return res;
 }
-
-function join_primary_dependencies(block_name, curlinelen, \
+function join_primary_dependencies(block_name, curlinelen, uses_vpath, new_line_prefix, \
 		res, i, i_len, item, itemlen, type) {
 	res = ""
+	if (!new_line_prefix) {
+		new_line_prefix = "    "
+	}
+	new_line_prefix_len = length(new_line_prefix)
 	i_len = length_block_dependency(block_name)
 	for (i=0; i<i_len; i++) {
 		item = get_block_dependency(block_name, i)
@@ -314,93 +369,50 @@ function join_primary_dependencies(block_name, curlinelen, \
 			print "# error: exhaustion: type \"" type "\" (filter out non-primary dependencies)"
 			continue
 		}
+		if (!type && !uses_vpath) {
+			# just a plain primary dependency that lives
+			# in vpath
+			item = "'$(SRC_PREFIX)" item "'"
+		}
 		itemlen = length(item)
 		curlinelen += 1 + itemlen
 		# + 2 to account for the possibility of " \\"
 		if ((curlinelen + 2) > maxlinelen) {
-			res = res " \\\n    " item
-			curlinelen = 4 + itemlen
+			res = res " \\\n" new_line_prefix item
+			curlinelen = new_line_prefix_len + itemlen
 		} else {
 			res = res " " item
 		}
 	}
 	return res
 }
-
-function join_c_objects(block_name, curlinelen, \
-		res, i, i_len, item, itemlen, type) {
-	res = ""
-	i_len = length_block_dependency(block_name)
-	for (i=0; i<i_len; i++) {
-		item = get_block_dependency(block_name, i)
-		type = get_block__type(item)
-		if (type != "c-object") {
-			continue;
-		}
-		item = item "." objext
-		itemlen = length(item)
-		curlinelen += 1 + itemlen
-		# + 2 to account for the possibility of " \\"
-		if ((curlinelen + 2) > maxlinelen) {
-			res = res " \\\n    " item
-			curlinelen = 4 + itemlen
-		} else {
-			res = res " " item
-		}
-	}
-	return res
+function prefix_primary_dependencies(prefix, block_name, uses_vpath, new_line_prefix) {
+	return prefix join_primary_dependencies(block_name, length(prefix), uses_vpath, new_line_prefix)
 }
 
-function join_recursive_dependencies(block_name, curlinelen, \
-		res, i, i_len, item, itemlen, type) {
-	if (!length_block_recursivedependency(block_name)) {
-		# calculate once
-		compute_recursive_dependencies(block_name, block_name, 0, length_block_dependency(block_name))
-	}
-	res = ""
-	i_len = length_block_recursivedependency(block_name)
-	for (i=0; i<i_len; i++) {
-		item = get_block_recursivedependency(block_name, i)
-		itemlen = length(item)
-		curlinelen += 1 + itemlen
-		# + 2 to account for the possibility of " \\"
-		if ((curlinelen + 2) > maxlinelen) {
-			res = res " \\\n    " item
-			curlinelen = 4 + itemlen
-		} else {
-			res = res " " item
-		}
-	}
-	return res
+function prefix_c_objects(prefix, block_name, new_line_prefix) {
+	return prefix join_c_objects(block_name, length(prefix), new_line_prefix)
 }
 
-function prefix_primary_dependencies(prefix, block_name) {
-	return prefix join_primary_dependencies(block_name, length(prefix))
-}
-
-function prefix_c_objects(prefix, block_name) {
-	return prefix join_c_objects(block_name, length(prefix))
-}
-
-function prefix_recursive_dependencies(prefix, block_name) {
-	return prefix join_recursive_dependencies(block_name, length(prefix))
+function prefix_sources(prefix, block_name, new_line_prefix) {
+	return prefix join_sources(block_name, length(prefix), new_line_prefix)
 }
 
 /^=[a-zA-Z][a-zA-Z0-9\-_.]*$/ {
-	# preamble
+	nerrors = 0
 	cur_block = substr($0, 2)
 	push_block(cur_block)
 	next
 }
 
 /^,/ {
-	# preamble
+	nerrors = 0
 	push_current_block_output(substr($0, 2))
 	next
 }
 
 /^type[ \t]/ {
-	# preamble
+	nerrors = 0
 	if (cur_block) {
 		cur_type = get_block__type(cur_block)
 		if (cur_type) {
@@ -421,7 +433,7 @@ function prefix_recursive_dependencies(prefix, block_name) {
 }
 
 /^dependency[ \t]/ {
-	# preamble
+	nerrors = 0
 	if (cur_block) {
 		if (cur_type ~ "^(c-program|c-object)$") {
 			push_current_block_dependency($2)
@@ -435,10 +447,10 @@ function prefix_recursive_dependencies(prefix, block_name) {
 }
 
 /^source[ \t]/ {
-	# preamble
+	nerrors = 0
 	if (cur_block) {
 		if (cur_type == "nofake") {
-			set_current_block__source($2)
+			push_current_block_source($2)
 		} else if (cur_type != type_error) {
 			print "# error: exhaustion: type: " cur_type
 		}
@@ -449,7 +461,7 @@ function prefix_recursive_dependencies(prefix, block_name) {
 }
 
 /^chunk[ \t]/ {
-	# preamble
+	nerrors = 0
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			name = $2    # the name inside noweb file
@@ -469,27 +481,8 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	next
 }
 
-/^source-prepend[ \t]/ {
-	# preamble
-	if (cur_block) {
-		if (cur_type == "nofake") {
-			file = $2
-			if (file) {
-				push_current_block_sourceprepend(file)
-			} else {
-				print "# error: missing file to prepend"
-			}
-		} else if (cur_type != type_error) {
-			print "# error: exhaustion: type: " cur_type
-		}
-	} else {
-		print "# error: orphan chunk"
-	}
-	next
-}
-
 /^target-option[ \t]/ {
-	# preamble
+	nerrors = 0
 	if (cur_block) {
 		if (cur_type == "nofake") {
 			target = $2
@@ -518,7 +511,7 @@ function prefix_recursive_dependencies(prefix, block_name) {
 }
 
 /^internal-vars$/ {
-	# preamble
+	nerrors = 0
 	push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
 	push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
 	push_current_block_output_deferred("OBJEXT")
@@ -526,7 +519,6 @@ function prefix_recursive_dependencies(prefix, block_name) {
 	push_current_block_output_deferred("SRC_INCLUDE")
 	push_current_block_output_deferred("SUBDIR")
 	push_current_block_output_deferred("TOP")
-	push_current_block_output_deferred("CAT")
 	push_current_block_output_deferred("NOFAKE")
 	push_current_block_output_deferred("INSTALL")
 	push_current_block_output_deferred("C_PROGRAMS")
@@ -536,94 +528,18 @@ function prefix_recursive_dependencies(prefix, block_name) {
 }
 
 /^[ \t]*#/ {
-	# preamble
+	nerrors = 0
 	# print "# comment: " $0
 	next
 }
 
 /^$/ {
-	# preamble
+	nerrors = 0
 	next
 }
 
 /^@$/ {
-	# preamble
-	if (cur_type == "c-program") {
-		num_of_deps = how_many_primary_dependencies(cur_block)
-		if (num_of_deps > 1) {
-			src = cur_block "-all.c"
-			obj = cur_block "-all." objext
-			push_current_block_output(prefix_primary_dependencies(src ": actions", cur_block))
-			push_current_block_output(prefix_primary_dependencies("\t$(CAT)", cur_block) " \\\n\t    >" src)
-			push_current_block_output(obj ": " src)
-			push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " " src)
-			push_current_block_output(prefix_c_objects(cur_block ": actions " obj, cur_block))
-			push_current_block_output(prefix_c_objects("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)", cur_block))
-		} else if (num_of_deps) {
-			obj = cur_block "." objext
-			push_current_block_output(prefix_primary_dependencies(obj ": actions", cur_block))
-			push_current_block_output(prefix_primary_dependencies("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj, cur_block))
-			push_current_block_output(prefix_c_objects(cur_block ": actions " obj, cur_block))
-			push_current_block_output(prefix_c_objects("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)", cur_block))
-		} else {
-			print "# error: exhaustion: no primary dependencies for \"" cur_block "\""
-		}
-	} else if (cur_type == "nofake") {
-		source_orig = get_block__source(cur_block)
-		if (length_current_block_sourceprepend()) {
-			source = "zz--" source_orig
-			source_resolved_path = source
-			source_deps = ""
-			i_len = length_current_block_sourceprepend()
-			for (i=0; i<i_len; i++) {
-				source_deps = source_deps " " get_current_block_sourceprepend(i)
-			}
-			push_current_block_output(source ": actions" source_deps " " source_orig)
-			push_current_block_output("\t$(CAT) " source_deps " \\\n\t    '" \
-				source_orig "' >'.tmp." source "'")
-			push_current_block_output("\t$(MV) '.tmp." source "' '" source "'")
-		} else {
-			source = source_orig
-			source_resolved_path = "$(SRC_PREFIX)" source_orig
-		}
-		i_len = length_current_block_chunk()
-		for (i=0; i<i_len; i++) {
-			target = get_current_block_chunk__target(i)
-			if (target == source_orig) {
-				print "# error: the target and the source are the same: " target
-			} else {
-				name = get_current_block_chunk__name(i)
-				push_current_block_output(target ": " source)
-				push_current_block_output("\t$(NOFAKE) -R'" name \
-					"' $(NOFAKEFLAGS) '" source_resolved_path "' > '.tmp." target "'")
-				push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
-				if (get_current_block_targetoption(target, "executable")) {
-					push_current_block_output("\t$(CHMOD_0555) '" target "'")
-				}
-			}
-		}
-	} else if (cur_type == "c-object") {
-		target = cur_block "." objext
-		num_of_deps = how_many_primary_dependencies(cur_block)
-		if (num_of_deps > 1) {
-			src = cur_block "-all.c"
-			push_current_block_output(prefix_primary_dependencies(src ": actions", cur_block))
-			push_current_block_output(prefix_primary_dependencies("\t$(CAT)", cur_block) " \\\n\t    >" src)
-			push_current_block_output(target ": " src)
-			push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target " " src)
-		} else if (num_of_deps) {
-			push_current_block_output(prefix_primary_dependencies(target ": actions", cur_block))
-			push_current_block_output(prefix_primary_dependencies("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target, cur_block))
-		} else {
-			print "# error: exhaustion: no primary dependencies for \"" cur_block "\""
-		}
-	} else if (cur_type) {
-		if (cur_type != type_error) {
-			print "# error: exhaustion: type: " cur_type
-		}
-	} else if (!length_current_block_output()) {
-		push_current_block_output("# error: type not defined in a block without output")
-	}
+	nerrors = 0
 	cur_block = 0
 	cur_type = 0
 	next
@@ -660,6 +576,7 @@ END{
 		src = vpath "/" subdir
 		print "VPATH = " src
 		tools_prefix = vpath "/tools/"
+		print ""
 	} else if (vpath && subdir && top) {
 		# relative vpath
 		if (subdir == "." && top == ".") {
@@ -672,17 +589,12 @@ END{
 			print "VPATH = " src
 			tools_prefix = vpath "/" top "/tools/"
 		}
+		print ""
 	} else {
 		print "# error: cannot determine VPATH"
 	}
-	print ""
 
 	vars["OBJEXT"] = "OBJEXT = " objext
-	if (src == ".") {
-		vars["CAT"] = "CAT = cat"
-	} else {
-		vars["CAT"] = "CAT = VPATH=\".:" src "\" " tools_prefix "cat-vpath.sh"
-	}
 	vars["NOFAKE"] = "NOFAKE = " tools_prefix "nofake"
 	vars["INSTALL"] = "INSTALL = " tools_prefix "install.sh"
 
@@ -702,20 +614,92 @@ END{
 		set_block(nontrivial, vars[varname])
 	}
 
-	i_len = length_block()
-	for (i=0; i<i_len; i++) {
-		print "# **************** " get_block(i)
-		cur_block = get_block(i)
+	h_len = length_block()
+	for (h=0; h<h_len; h++) {
+		cur_block = get_block(h)
 		cur_type = get_block__type(cur_block)
 		if (cur_type == type_error) {
 			print "# error: block \"" cur_block "\" has previously reported errors"
+			print ""
 		} else {
+			print "# **************** " cur_block " " (cur_type ? "(type: " cur_type ")" : "(no type)")
+			if (cur_type == "c-program") {
+				num_of_deps = how_many_primary_dependencies(cur_block)
+				if (num_of_deps > 1) {
+					src = cur_block "-all.c"
+					obj = cur_block "-all." objext
+					push_current_block_output(prefix_primary_dependencies(src ": actions", cur_block, 1))
+					push_current_block_output(prefix_primary_dependencies("\t$(CAT)", cur_block, 0, "\t    ") " \\\n\t    >" src)
+					push_current_block_output(obj ": " src)
+					push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " " src)
+					push_current_block_output(prefix_c_objects(cur_block ": actions " obj, cur_block, "    "))
+					push_current_block_output(prefix_c_objects("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)", cur_block, "\t    "))
+				} else if (num_of_deps) {
+					obj = cur_block "." objext
+					push_current_block_output(prefix_primary_dependencies(obj ": actions", cur_block, 1))
+					push_current_block_output(prefix_primary_dependencies("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj, cur_block, 0, "\t    "))
+					push_current_block_output(prefix_c_objects(cur_block ": actions " obj, cur_block, "    "))
+					push_current_block_output(prefix_c_objects("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)", cur_block, "\t    "))
+				} else {
+					print "# error: exhaustion: no primary dependencies for \"" cur_block "\""
+				}
+			} else if (cur_type == "nofake") {
+				i_len = length_current_block_chunk()
+				for (i=0; i<i_len; i++) {
+					name = get_current_block_chunk__name(i)
+					target = get_current_block_chunk__target(i)
+					j_len = length_block_source(cur_block)
+					if (!j_len) {
+						print "# error: there are no sources defined to generate target \"" target "\""
+						next
+					}
+					clear_gl0()
+					for (j=0; j<j_len; j++) {
+						source = get_block_source(cur_block, j)
+						if (target == source) {
+							print "# error: the target and the source are the same: \"" target "\""
+							next
+						}
+						push_gl0("'$(SRC_PREFIX)" source "'")
+					}
+					push_current_block_output(prefix_sources(target ": actions", cur_block))
+					push_current_block_output(prefix_gl0("\t$(NOFAKE) -R'" name "' $(NOFAKEFLAGS)", "\t    ") \
+						" \\\n\t    >'.tmp." target "'")
+					push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
+					if (get_current_block_targetoption(target, "executable")) {
+						push_current_block_output("\t$(CHMOD_0555) '" target "'")
+					} else {
+						push_current_block_output("\t$(CHMOD_0444) '" target "'")
+					}
+				}
+			} else if (cur_type == "c-object") {
+				target = cur_block "." objext
+				num_of_deps = how_many_primary_dependencies(cur_block)
+				if (num_of_deps > 1) {
+					src = cur_block "-all.c"
+					push_current_block_output(prefix_primary_dependencies(src ": actions", cur_block, 1))
+					push_current_block_output(prefix_primary_dependencies("\t$(CAT)", cur_block, 0) " \\\n\t    >" src)
+					push_current_block_output(target ": " src)
+					push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target " " src)
+				} else if (num_of_deps) {
+					push_current_block_output(prefix_primary_dependencies(target ": actions", cur_block, 1))
+					push_current_block_output(prefix_primary_dependencies("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target, cur_block, 0))
+				} else {
+					print "# error: exhaustion: no primary dependencies for \"" cur_block "\""
+				}
+			} else if (cur_type) {
+				if (cur_type != type_error) {
+					print "# error: exhaustion: type: " cur_type
+				}
+			} else if (!length_current_block_output()) {
+				push_current_block_output("# error: type not defined in a block without output")
+			}
 			j_len = length_current_block_output()
 			for (j=0; j<j_len; j++) {
 				print get_block_output(cur_block, j)
 			}
+			print ""
 		}
-		print ""
 	}
 
 	if (length_block_output("")) {

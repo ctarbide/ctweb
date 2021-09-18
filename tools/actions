@@ -4,12 +4,58 @@
 ,all: $(C_PROGRAMS)
 @
 
-=realpath
-type c-program
+=strlcpy.c
+type nofake
+source strlcpy.nw
+chunk * strlcpy.c
+@
+
+=strlcat.c
+type nofake
+source strlcat.nw
+chunk * strlcat.c
+@
+
+=realpath.c
+type nofake
+source realpath.nw
+chunk * realpath.c
+@
+
+=protos.h
+type nofake
+source strlcpy.nw
+source strlcat.nw
+source realpath.nw
+chunk header protos.h
+@
+
+=strlcat
+type c-object
 dependency config.h
 dependency strlcat.c
+@
+
+=strlcpy
+type c-object
+dependency config.h
 dependency strlcpy.c
+@
+
+=realpath
+type c-object
+dependency config.h
+dependency protos.h
 dependency realpath.c
+@
+
+=realpath-main
+type c-program
+dependency config.h
+dependency protos.h
+dependency strlcat
+dependency strlcpy
+dependency realpath
 dependency realpath-main.c
 @
 
@@ -20,6 +66,15 @@ dependency realpath-main.c
 ,	$(NOFAKE_OR_NOTANGLE) -Rnofake nofake.nw > .tmp.nofake
 ,	$(MV) .tmp.nofake nofake
 ,	$(CHMOD_0555) nofake
+@
+
+=functions.awk
+,# note: this target is not built automatically since it is
+,#       critical to the bootstrapping process
+,functions.awk: functions.nw
+,	$(NOFAKE) functions.nw > .tmp.functions.awk
+,	$(MV) .tmp.functions.awk functions.awk
+,	$(CHMOD_0444) functions.awk
 @
 
 =gen-Makefile.awk

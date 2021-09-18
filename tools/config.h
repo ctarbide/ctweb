@@ -33,8 +33,6 @@
 
 #define INTERNAL_PATH_MAX		1024
 
-#define DEF_WEAK(sym)
-
 #define strlcat		internal_strlcat
 #define strlcpy		internal_strlcpy
 

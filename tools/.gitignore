@@ -1,5 +1,8 @@
 *.o
 /*-all.c
 /Makefile
-/realpath
-/hello
+/strlcpy.c
+/protos.h
+/strlcat.c
+/realpath-main
+/realpath.c
