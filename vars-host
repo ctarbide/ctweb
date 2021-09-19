@@ -25,7 +25,7 @@
 @
 
 =extra-vars
-internal-vars
+type internal-vars
 ,
 ,AWK=$(BUILD_AWK)
 @

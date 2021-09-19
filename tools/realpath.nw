@@ -3,11 +3,12 @@
 char *realpath(const char *path, char *resolved)
 @
 
-<<header>>=
+<<prototypes>>=
 <<realpath function prototype>>;
 @
 
-<<includes>>=
+<<realpath includes>>=
+#include "config.h"
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,7 +16,7 @@ char *realpath(const char *path, char *resolved)
 #include <limits.h>
 @
 
-<<copy>>=
+<<realpath copy>>=
 /*	$OpenBSD: realpath.c,v 1.22 2017/12/24 01:50:50 millert Exp $ */
 /*
  * Copyright (c) 2003 Constantin S. Svintsoff <kostik@iclub.nsu.ru>
@@ -46,10 +47,12 @@ char *realpath(const char *path, char *resolved)
  */
 @
 
-<<*>>=
-<<copy>>
+<<realpath.c>>=
+<<realpath copy>>
 
-<<includes>>
+<<realpath includes>>
+
+<<prototypes>>
 
 /* A slightly modified copy of this file exists in libexec/ld.so */
 

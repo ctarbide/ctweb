@@ -166,7 +166,6 @@ function gfl_join(sep, \
 <<block [dependency]>>
 <<block [source]>>
 <<[chunk]>>
-<<[deferred]>>
 <<[gl0]>>
 
 #|
@@ -531,36 +530,6 @@ function gfl_join(sep, \
 #Aidx
 #Kidx
 #K"target"
-#>
-@
-
-<<[deferred]>>=
-
-#|
-#| ################ [deferred]
-#|
-
-# lines that will be computed only on the last
-# moment, after all lines has been processed
-
-#<deferred
-#Opush
-#Avarname
-#Vvarname
-#>
-
-#<deferred
-#Olength
-#>
-
-#<deferred
-#Oget
-#Aidx
-#Kidx
-#>
-
-#<deferred
-#Olastindex
 #>
 @
 

@@ -1,5 +1,5 @@
 
-<<changes.1>>=
+<<strlcat changes>>=
 
 - removed DEF_WEAK(strlcat);
 
@@ -7,16 +7,17 @@
 size_t strlcat(char *dst, const char *src, size_t dsize)
 @
 
-<<header>>=
+<<prototypes>>=
 <<strlcat function prototype>>;
 @
 
-<<includes>>=
+<<strlcat includes>>=
+#include "config.h"
 #include <sys/types.h>
 #include <string.h>
 @
 
-<<modifications notice in code>>=
+<<strlcat modifications notice in code>>=
 /*
  * minor modifications to better fit in the build system
  *  -- ctarbide
@@ -24,7 +25,7 @@ size_t strlcat(char *dst, const char *src, size_t dsize)
  */
 @
 
-<<copy>>=
+<<strlcat copy>>=
 /*	$OpenBSD: strlcat.c,v 1.19 2019/01/25 00:19:25 millert Exp $	*/
 
 /*
@@ -44,12 +45,14 @@ size_t strlcat(char *dst, const char *src, size_t dsize)
  */
 @
 
-<<*>>=
-<<copy>>
+<<strlcat.c>>=
+<<strlcat copy>>
 
-<<modifications notice in code>>
+<<strlcat modifications notice in code>>
 
-<<includes>>
+<<strlcat includes>>
+
+<<prototypes>>
 
 /*
  * Appends src to string dst of size dsize (unlike strncat, dsize is the

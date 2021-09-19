@@ -18,7 +18,9 @@ BEGIN{
 	subdir = ENVIRON["SUBDIR"]
 	top = ENVIRON["TOP"]
 	objext = ENVIRON["OBJEXT"]
+	exesuffix = ENVIRON["EXESUFFIX"]
 	if (!objext) { objext = "o" }
+	if (!exesuffix) { exesuffix = "" }
 	maxlinelen = 72
 	type_error = "!error"
 }
@@ -147,21 +149,6 @@ function get_chunk__target(idx) {
 	return chunk[idx, "target"]
 }
 
-################ [deferred]
-
-function push_deferred(varname) {
-	deferred[deferred[".length"]++] = varname
-}
-function length_deferred() {
-	return deferred[".length"] + 0
-}
-function get_deferred(idx) {
-	return deferred[idx]
-}
-function lastindex_deferred() {
-	return (deferred[".length"] + 0)
-}
-
 ################ [gl0]
 
 function push_gl0(item) {
@@ -186,17 +173,6 @@ function set_var_from_env_template(var, def, \
 		env) {
 	env = ENVIRON[var]
 	return var "=" (env ? env : def)
-}
-
-function push_chunk_custom(name, target) {
-	push_current_block_chunk(name, target)
-	push_chunk(name, target)
-	map_chunk_target_to_block[target] = cur_block
-}
-
-function push_current_block_output_deferred(s) {
-	push_deferred(lastindex_current_block_output())
-	push_current_block_output(s)
 }
 
 function join_block_names_by_type(curlinelen, type, \
@@ -263,7 +239,7 @@ function join_c_objects(block_name, curlinelen, new_line_prefix, \
 		item = get_block_dependency(block_name, i)
 		type = get_block__type(item)
 		if (type != "c-object") {
-			continue;
+			continue
 		}
 		item = item "." objext
 		itemlen = length(item)
@@ -336,11 +312,11 @@ function how_many_primary_dependencies(block_name, \
 			continue
 		} else if (type ~ "^(nofake)$") {
 			# it is common for a nofake chunk target
-			# match a primary target
+			# match a primary dependency, just proceed
 		} else if (!type) {
 			# just a plain primary dependency
 		} else {
-			print "# error: exhaustion: type \"" type "\" (filter out non-primary dependencies)"
+			print "# error: exhaustion: " FILENAME ":" FNR ": type \"" type "\" (filtering out non-primary dependencies)"
 			continue
 		}
 		res++
@@ -362,11 +338,11 @@ function join_primary_dependencies(block_name, curlinelen, uses_vpath, new_line_
 			continue
 		} else if (type ~ "^(nofake)$") {
 			# it is common for a nofake chunk target
-			# match a primary target
+			# match a primary dependency, just proceed
 		} else if (!type) {
 			# just a plain primary dependency
 		} else {
-			print "# error: exhaustion: type \"" type "\" (filter out non-primary dependencies)"
+			print "# error: exhaustion: " FILENAME ":" FNR ": type \"" type "\" (filtering out non-primary dependencies)"
 			continue
 		}
 		if (!type && !uses_vpath) {
@@ -425,6 +401,19 @@ function prefix_sources(prefix, block_name, new_line_prefix) {
 		} else {
 			# setting type for the first time
 			set_current_block__type(cur_type = $2)
+			if (cur_type == "c-object") {
+				target = cur_block "." objext
+				is_generated_target[target]++
+			} else if (cur_type == "c-program") {
+				target = cur_block exesuffix
+				is_generated_target[target]++
+			} else if (cur_type == "nofake") {
+				# nofake can have multiple targets, see chunks
+			} else if (cur_type == "internal-vars") {
+				# internal-vars has no target
+			} else {
+				print "# error: exhaustion: " FILENAME ":" FNR ": type " cur_type
+			}
 		}
 	} else {
 		print "# error: orphan type"
@@ -438,7 +427,7 @@ function prefix_sources(prefix, block_name, new_line_prefix) {
 		if (cur_type ~ "^(c-program|c-object)$") {
 			push_current_block_dependency($2)
 		} else if (cur_type != type_error) {
-			print "# error: exhaustion: type: " cur_type
+			print "# error: exhaustion: " FILENAME ":" FNR ": type: " cur_type
 		}
 	} else {
 		print "# error: orphan dependency"
@@ -449,10 +438,10 @@ function prefix_sources(prefix, block_name, new_line_prefix) {
 /^source[ \t]/ {
 	nerrors = 0
 	if (cur_block) {
-		if (cur_type == "nofake") {
+		if (cur_type ~ "^(nofake|c-program|c-object)$") {
 			push_current_block_source($2)
 		} else if (cur_type != type_error) {
-			print "# error: exhaustion: type: " cur_type
+			print "# error: exhaustion: " FILENAME ":" FNR ": type: " cur_type
 		}
 	} else {
 		print "# error: orphan source"
@@ -464,16 +453,28 @@ function prefix_sources(prefix, block_name, new_line_prefix) {
 	nerrors = 0
 	if (cur_block) {
 		if (cur_type == "nofake") {
-			name = $2    # the name inside noweb file
+			name = $2    # name inside noweb file
 			target = $3  # output filename of this chunk
-			if (map_chunk_target_to_block[target]) {
-				print "# error: chunk target already defined: " target \
-					" in block " map_chunk_target_to_block[target]
-			} else {
-				push_chunk_custom(name, target)
+			if (!target) {
+				if (name ~ "^[a-zA-Z0-9_]") {
+					target = name
+				} else {
+					print "# error: cannot determine an appropriate target filename from chunk name \"" name "\""
+				}
+			}
+			if (target) {
+				if (map_chunk_target_to_block[target]) {
+					print "# error: chunk target already defined: " target \
+						" in block " map_chunk_target_to_block[target]
+				} else {
+					is_generated_target[target]++
+					push_current_block_chunk(name, target)
+					push_chunk(name, target)
+					map_chunk_target_to_block[target] = cur_block
+				}
 			}
 		} else if (cur_type != type_error) {
-			print "# error: exhaustion: type: " cur_type
+			print "# error: exhaustion: " FILENAME ":" FNR ": type: " cur_type
 		}
 	} else {
 		print "# error: orphan chunk"
@@ -502,28 +503,11 @@ function prefix_sources(prefix, block_name, new_line_prefix) {
 				print "# error: target is not defined for target-option"
 			}
 		} else if (cur_type != type_error) {
-			print "# error: exhaustion: type: " cur_type
+			print "# error: exhaustion: " FILENAME ":" FNR ": type: " cur_type
 		}
 	} else {
 		print "# error: orphan chunk"
 	}
-	next
-}
-
-/^internal-vars$/ {
-	nerrors = 0
-	push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
-	push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
-	push_current_block_output_deferred("OBJEXT")
-	push_current_block_output_deferred("SRC_PREFIX")
-	push_current_block_output_deferred("SRC_INCLUDE")
-	push_current_block_output_deferred("SUBDIR")
-	push_current_block_output_deferred("TOP")
-	push_current_block_output_deferred("NOFAKE")
-	push_current_block_output_deferred("INSTALL")
-	push_current_block_output_deferred("C_PROGRAMS")
-	push_current_block_output_deferred("NOFAKE_SOURCES")
-	push_current_block_output_deferred("NOFAKE_CHUNKS")
 	next
 }
 
@@ -595,24 +579,23 @@ END{
 	}
 
 	vars["OBJEXT"] = "OBJEXT = " objext
+	vars["EXESUFFIX"] = "EXESUFFIX = " exesuffix
 	vars["NOFAKE"] = "NOFAKE = " tools_prefix "nofake"
 	vars["INSTALL"] = "INSTALL = " tools_prefix "install.sh"
 
 	vars["C_PROGRAMS"] = prefix_c_programs("C_PROGRAMS =")
 	vars["NOFAKE_CHUNKS"] = prefix_nofake_chunks("NOFAKE_CHUNKS =")
 
-	vars["SRC_PREFIX"] = "SRC_PREFIX = " (src == "." ? "" : src "/" )
-	vars["SRC_INCLUDE"] = "SRC_INCLUDE = -I'" src "'"
+	if (src == ".") {
+		vars["SRC_PREFIX"] = "SRC_PREFIX ="
+		vars["SRC_INCLUDE"] = "SRC_INCLUDE = -I."
+	} else {
+		vars["SRC_PREFIX"] = "SRC_PREFIX = " src "/"
+		vars["SRC_INCLUDE"] = "SRC_INCLUDE = -I. -I'" src "'"
+	}
+
 	vars["SUBDIR"] = "SUBDIR = " subdir
 	vars["TOP"] = "TOP = " top
-
-	i_len = length_deferred()
-	for (i=0; i<i_len; i++) {
-		# non-trivial refers to a non-trivial index into block
-		nontrivial = get_deferred(i)
-		varname = get_block(nontrivial)
-		set_block(nontrivial, vars[varname])
-	}
 
 	h_len = length_block()
 	for (h=0; h<h_len; h++) {
@@ -624,24 +607,29 @@ END{
 		} else {
 			print "# **************** " cur_block " " (cur_type ? "(type: " cur_type ")" : "(no type)")
 			if (cur_type == "c-program") {
-				num_of_deps = how_many_primary_dependencies(cur_block)
-				if (num_of_deps > 1) {
-					src = cur_block "-all.c"
-					obj = cur_block "-all." objext
-					push_current_block_output(prefix_primary_dependencies(src ": actions", cur_block, 1))
-					push_current_block_output(prefix_primary_dependencies("\t$(CAT)", cur_block, 0, "\t    ") " \\\n\t    >" src)
-					push_current_block_output(obj ": " src)
-					push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " " src)
-					push_current_block_output(prefix_c_objects(cur_block ": actions " obj, cur_block, "    "))
-					push_current_block_output(prefix_c_objects("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)", cur_block, "\t    "))
-				} else if (num_of_deps) {
-					obj = cur_block "." objext
-					push_current_block_output(prefix_primary_dependencies(obj ": actions", cur_block, 1))
-					push_current_block_output(prefix_primary_dependencies("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj, cur_block, 0, "\t    "))
-					push_current_block_output(prefix_c_objects(cur_block ": actions " obj, cur_block, "    "))
-					push_current_block_output(prefix_c_objects("\t$(LD) $(LDFLAGS) -o " cur_block " " obj " $(LIBS)", cur_block, "\t    "))
+				source_len = length_block_source(cur_block)
+				if (source_len == 1) {
+					source = get_block_source(cur_block, 0)
+					obj = source
+					if (sub(/\.c$/, "." objext, obj)) {
+						if (!is_generated_target[obj]) {
+							push_current_block_output(prefix_primary_dependencies(obj ": " source, cur_block, 1, "    "))
+							if (is_generated_target[source]) {
+								push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '" source "'")
+							} else {
+								push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '$(SRC_PREFIX)" source "'")
+							}
+						}
+						target = cur_block exesuffix
+						push_current_block_output(prefix_c_objects(target ": " obj, cur_block, "    "))
+						push_current_block_output(prefix_c_objects("\t$(LD) $(LDFLAGS) -o " cur_block " $(LIBS)", cur_block, "\t    ") " " obj)
+					} else {
+						push_current_block_output("# error: exhaustion: c-program \"" cur_block "\" source: \"" source "\"")
+					}
+				} else if (source_len) {
+					push_current_block_output("# error: c-program \"" cur_block "\" expects 1 source, " source_len " provided")
 				} else {
-					print "# error: exhaustion: no primary dependencies for \"" cur_block "\""
+					push_current_block_output("# error: c-program \"" cur_block "\" has no source")
 				}
 			} else if (cur_type == "nofake") {
 				i_len = length_current_block_chunk()
@@ -662,7 +650,7 @@ END{
 						}
 						push_gl0("'$(SRC_PREFIX)" source "'")
 					}
-					push_current_block_output(prefix_sources(target ": actions", cur_block))
+					push_current_block_output(prefix_sources(target ":", cur_block))
 					push_current_block_output(prefix_gl0("\t$(NOFAKE) -R'" name "' $(NOFAKEFLAGS)", "\t    ") \
 						" \\\n\t    >'.tmp." target "'")
 					push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
@@ -673,23 +661,39 @@ END{
 					}
 				}
 			} else if (cur_type == "c-object") {
-				target = cur_block "." objext
-				num_of_deps = how_many_primary_dependencies(cur_block)
-				if (num_of_deps > 1) {
-					src = cur_block "-all.c"
-					push_current_block_output(prefix_primary_dependencies(src ": actions", cur_block, 1))
-					push_current_block_output(prefix_primary_dependencies("\t$(CAT)", cur_block, 0) " \\\n\t    >" src)
-					push_current_block_output(target ": " src)
-					push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target " " src)
-				} else if (num_of_deps) {
-					push_current_block_output(prefix_primary_dependencies(target ": actions", cur_block, 1))
-					push_current_block_output(prefix_primary_dependencies("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target, cur_block, 0))
+				source_len = length_block_source(cur_block)
+				if (source_len == 1) {
+					source = get_block_source(cur_block, 0)
+					obj = cur_block "." objext
+					target = obj
+					push_current_block_output(prefix_primary_dependencies(target ": " source, cur_block, 1, "    "))
+					if (is_generated_target[source]) {
+						push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '" source "'")
+					} else {
+						push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '$(SRC_PREFIX)" source "'")
+					}
+				} else if (source_len) {
+					push_current_block_output("# error: c-object \"" cur_block "\" expects 1 source, " source_len " provided")
 				} else {
-					print "# error: exhaustion: no primary dependencies for \"" cur_block "\""
+					push_current_block_output("# error: c-object \"" cur_block "\" has no source")
 				}
+			} else if (cur_type == "internal-vars") {
+				push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
+				push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
+				push_current_block_output(vars["OBJEXT"])
+				push_current_block_output(vars["EXESUFFIX"])
+				push_current_block_output(vars["SRC_PREFIX"])
+				push_current_block_output(vars["SRC_INCLUDE"])
+				push_current_block_output(vars["SUBDIR"])
+				push_current_block_output(vars["TOP"])
+				push_current_block_output(vars["NOFAKE"])
+				push_current_block_output(vars["INSTALL"])
+				push_current_block_output(vars["C_PROGRAMS"])
+				push_current_block_output(vars["NOFAKE_SOURCES"])
+				push_current_block_output(vars["NOFAKE_CHUNKS"])
 			} else if (cur_type) {
 				if (cur_type != type_error) {
-					print "# error: exhaustion: type: " cur_type
+					print "# error: exhaustion: " FILENAME ":" FNR ": type: " cur_type
 				}
 			} else if (!length_current_block_output()) {
 				push_current_block_output("# error: type not defined in a block without output")

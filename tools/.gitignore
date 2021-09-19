@@ -1,5 +1,4 @@
 *.o
-/*-all.c
 /Makefile
 /strlcpy.c
 /protos.h

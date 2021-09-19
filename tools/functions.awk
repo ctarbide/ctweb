@@ -443,33 +443,6 @@ function gfl_join(sep, \
 #>
 
 #|
-#| ################ [deferred]
-#|
-
-# lines that will be computed only on the last
-# moment, after all lines has been processed
-
-#<deferred
-#Opush
-#Avarname
-#Vvarname
-#>
-
-#<deferred
-#Olength
-#>
-
-#<deferred
-#Oget
-#Aidx
-#Kidx
-#>
-
-#<deferred
-#Olastindex
-#>
-
-#|
 #| ################ [gl0]
 #|
 

@@ -1,5 +1,5 @@
 
-<<changes.1>>=
+<<strlcpy changes>>=
 
 - removed DEF_WEAK(strlcpy);
 
@@ -7,16 +7,17 @@
 size_t strlcpy(char *dst, const char *src, size_t dsize)
 @
 
-<<header>>=
+<<prototypes>>=
 <<strlcpy function prototype>>;
 @
 
-<<includes>>=
+<<strlcpy includes>>=
+#include "config.h"
 #include <sys/types.h>
 #include <string.h>
 @
 
-<<modifications notice in code>>=
+<<strlcpy modifications notice in code>>=
 /*
  * minor modifications to better fit in the build system
  *  -- ctarbide
@@ -24,7 +25,7 @@ size_t strlcpy(char *dst, const char *src, size_t dsize)
  */
 @
 
-<<copy>>=
+<<strlcpy copy>>=
 /*	$OpenBSD: strlcpy.c,v 1.16 2019/01/25 00:19:25 millert Exp $	*/
 
 /*
@@ -44,12 +45,14 @@ size_t strlcpy(char *dst, const char *src, size_t dsize)
  */
 @
 
-<<*>>=
-<<copy>>
+<<strlcpy.c>>=
+<<strlcpy copy>>
 
-<<modifications notice in code>>
+<<strlcpy modifications notice in code>>
 
-<<includes>>
+<<strlcpy includes>>
+
+<<prototypes>>
 
 /*
  * Copy string src to buffer dst of size dsize.  At most dsize-1

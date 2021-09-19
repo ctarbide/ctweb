@@ -127,52 +127,52 @@ chunk * markmain.c
 
 =modules
 type c-object
-dependency modules.c
+source modules.c
 @
 
 =strsave
 type c-object
-dependency strsave.c
+source strsave.c
 @
 
 =columns
 type c-object
-dependency columns.c
+source columns.c
 @
 
 =modtrees
 type c-object
-dependency modtrees.c
+source modtrees.c
 @
 
 =notangle
 type c-object
-dependency notangle.c
+source notangle.c
 @
 
 =getline
 type c-object
-dependency getline.c
+source getline.c
 @
 
 =match
 type c-object
-dependency match.c
+source match.c
 @
 
 =errors
 type c-object
-dependency errors.c
+source errors.c
 @
 
 =recognize
 type c-object
-dependency recognize.c
+source recognize.c
 @
 
 =markmain
 type c-object
-dependency markmain.c
+source markmain.c
 @
 
 =mnt
@@ -185,7 +185,7 @@ dependency notangle
 dependency getline
 dependency match
 dependency errors
-dependency mnt.c
+source mnt.c
 @
 
 =finduses
@@ -195,7 +195,7 @@ dependency getline
 dependency recognize
 dependency match
 dependency errors
-dependency finduses.c
+source finduses.c
 @
 
 =markup
@@ -207,7 +207,7 @@ dependency recognize
 dependency match
 dependency errors
 dependency markmain
-dependency markup.c
+source markup.c
 @
 
 =nt
@@ -220,12 +220,12 @@ dependency modtrees
 dependency strsave
 dependency errors
 dependency columns
-dependency main.c
+source main.c
 @
 
 =nwmktemp
 type c-program
-dependency nwmktemp.c
+source nwmktemp.c
 @
 
 =clean
