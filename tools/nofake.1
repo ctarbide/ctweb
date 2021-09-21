@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "NOFAKE 1"
-.TH NOFAKE 1 "2021-09-09" "perl v5.16.3" "User Contributed Perl Documentation"
+.TH NOFAKE 1 "2021-09-21" "perl v5.16.3" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -133,9 +133,13 @@
 nofake \- simple notangle replacement for the Noweb literate programming tool
 .SH "SYNOPSIS"
 .IX Header "SYNOPSIS"
-\&\fBnofake\fR [\fB\-R\fR\fIchunk\fR] [\fB\-L\fR[\fIformat\fR]] [\fIfile\fR]
+\&\fBnofake\fR [\fB\-R\fR\fIchunk\fR ...] [\fB\-L\fR[\fIformat\fR]] [\fIfile\fR] ...
 .PP
-\&\fBnofake\fR [\fB\-version\fR|\fB\-v\fR]
+\&\fBnofake\fR [\fB\-\-version\fR|\fB\-v\fR]
+.PP
+\&\fBnofake\fR [\fB\-\-list\-all\fR] [\fIfile\fR] ...
+.PP
+\&\fBnofake\fR [\fB\-\-list\-roots\fR] [\fIfile\fR] ...
 .SH "DESCRIPTION"
 .IX Header "DESCRIPTION"
 \&\fINoweb\fR\|(1) is a literate-programming tool like Knuth's \s-1WEB\s0. A noweb file
@@ -152,8 +156,7 @@ stdin, if no \fIchunk\fR is named, \fBnofake\fR extracts the chunk \f(CW\*(C`*\*
 .IP "\fB\-R\fR\fIchunk\fR" 4
 .IX Item "-Rchunk"
 Extract chunk \fIchunk\fR (recursively) from the noweb file and write it to
-stdout.  Unlike notangle, only one chunk can be extracted per invocation
-of \fBnofake\fR.
+stdout.
 .IP "\fB\-L\fR[\fIformat\fR]" 4
 .IX Item "-L[format]"
 \&\fBnofake\fR emits \fIcpp\fR\|(1)\-style \f(CW\*(C`#line\*(C'\fR directives to allow a compiler
@@ -162,6 +165,12 @@ source code directly.  The optional \fIformat\fR allows to provided the
 format of the line directive: \f(CW\*(C`\-L\*(Aq#line %L "%F"%N\*(Aq\*(C'\fR. In \fIformat\fR \f(CW%F\fR
 indicates the name of the source file, \f(CW%L\fR the line number, and \f(CW%N\fR
 a newline. The default \f(CW\*(C`#line %L "%F"%N\*(C'\fR is suitable for C compilers.
+.IP "\fB\-\-list\-all\fR" 4
+.IX Item "--list-all"
+List all \fIchunks\fR in noweb files.
+.IP "\fB\-\-list\-roots\fR" 4
+.IX Item "--list-roots"
+List all \fIchunks\fR in noweb files that are not referenced by other chunks.
 .SH "SYNTAX OF NOWEB FILES"
 .IX Header "SYNTAX OF NOWEB FILES"
 The authoritive source for the syntax of noweb files is the \fInoweb\fR\|(1)
@@ -186,40 +195,20 @@ documentation. However, here is an example:
 \&    @
 .Ve
 .PP
-A chunk is defined by \f(CW\*(C`<<chunk>>=\*(C'\fR and reaches up to
-the next definition or a line starting with \f(CW\*(C`@\*(C'\fR. A chunk can
-recursivley refer to other chunks: chunk \f(CW\*(C`hello.c\*(C'\fR refers to
-\&\f(CW\*(C`includes\*(C'\fR and \f(CW\*(C`say hello\*(C'\fR. A chunk is referred to by
-\&\f(CW\*(C`<<chunk>>\*(C'\fR. To use the \f(CW\*(C`<<\*(C'\fR and \f(CW\*(C`>>\*(C'\fR
-character literally in a program, precede them with a \f(CW\*(C`@\*(C'\fR.
+A chunk is defined by \f(CW\*(C`<<chunk>>=\*(C'\fR and reaches up
+to the next definition or a line starting with \f(CW\*(C`@\*(C'\fR followed by a
+space or newline. A chunk can recursivley refer to other chunks:
+chunk \f(CW\*(C`hello.c\*(C'\fR refers to \f(CW\*(C`includes\*(C'\fR and \f(CW\*(C`say hello\*(C'\fR. A chunk
+is referred to by \f(CW\*(C`<<chunk>>\*(C'\fR. To use the
+\&\f(CW\*(C`<<\*(C'\fR and \f(CW\*(C`>>\*(C'\fR character literally in a program,
+precede them with a \f(CW\*(C`@\*(C'\fR.
 .SH "LIMITATIONS"
 .IX Header "LIMITATIONS"
-The \fBnofake\fR architecture is much simpler than that of \fInotangle\fR\|(1) and
-therefore many things do not work. In particular:
-.IP "\(bu" 4
-\&\fBnofake\fR accepts the \fB\-R\fR\fIchunk\fR option only once.
-.IP "\(bu" 4
-Line directives (\f(CW\*(C`#line\*(C'\fR) are indented. In the case of \fIcpp\fR\|(1)\-style
-line directives this is still \s-1ANSI/ISO\s0 C conforming but might cause
-problems with other directives and older versions of \fIcpp\fR\|(1).
-.IP "\(bu" 4
-Do not use \f(CW\*(C`@\*(C'\fR in chunk names.
+The \fBnofake\fR architecture is simpler than that of \fInotangle\fR\|(1) and
+therefore one thing do not work. In particular:
 .IP "\(bu" 4
 \&\fBnofake\fR does not accept the \fB\-filter\fR \fIcommand\fR option that
 \&\fBnotangle\fR uses to filter chunks before they are emitted.
-.IP "\(bu" 4
-A noweb file must not refer to more than one chunk per line. The
-following code is \fInot\fR handled correctly by \fBnofake\fR because the
-chunk \f(CW\*(C`*\*(C'\fR contains two chunk references in one line.
-.Sp
-.Vb 2
-\&    <<*>>=
-\&    <<one>> <<one>>
-\&
-\&    <<one>>=
-\&    one
-\&    @
-.Ve
 .SH "COPYING"
 .IX Header "COPYING"
 This software is in the public domain.

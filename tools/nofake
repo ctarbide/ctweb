@@ -2,6 +2,7 @@
 #
 # Generated from nofake.nw. Do not edit! Edit nofake.nw instead and
 # run nofake on it:
+#
 #   ./nofake -Rnofake nofake.nw > nofake.pl
 #   mv nofake.pl nofake
 #   chmod a+x nofake
@@ -11,6 +12,10 @@
 #
 #   pod2man nofake > nofake.1
 #   nroff -man nofake.1 | more
+#
+# The noweb source for this version is available at:
+#
+#   https://github.com/ctarbide/ctweb/blob/master/tools/nofake.nw
 #
 # This software is in the public domain; for details, see the manual
 # page.
@@ -36,12 +41,14 @@ sub version {
 EOF
 }
 
-my $lineformat = '#line %L "%F"%N';   #default format for #line directive
-my $sync = 0;                         #default: do not emit #line directives
+my $lineformat = '#line %L "%F"%N';   # default format for #line directive
+my $sync = 0;                         # default: do not emit #line directives
 
-my $chunk = '*';                      #default chunk to extract
-my %chunks = ();                      #hash table for chunks
-my %chunks_options = ();              #hash table for chunks options
+my %chunks = ();                      # hash table for chunks
+my %chunks_options = ();              # hash table for chunks options
+
+my $list_all = 0;                     # list all chunks
+my $list_roots = 0;                   # list only root chunks
 
 sub set_many (\%@) {
     my ($h, $k, @rest) = @_;
@@ -81,7 +88,7 @@ sub read_file {
         if ($line =~ m{^<<(.+?)>>=\s*$}) {
             $chunk = $1;
             if (!$chunks_options{$chunk}) {
-                $chunks_options{$chunk} = {};
+                $chunks_options{$chunk} = {nextractions => 0};
             }
             $chunks_options{$chunk}->{nchunks}++;
         } elsif ($chunk) {
@@ -103,10 +110,18 @@ sub extract {
         Carp::croak("error: code chunk <<$chunk>> is used in its own definition (at ${parent_fname}:${parent_lnum}).");
     }
     $being_extracted{$chunk}++;
+    $chunks_options{$chunk}->{nextractions}++;
     my @res = ();
     my @input = get_many($chunks{$chunk});
     my $representative_fname = $input[0] if @input;
     my $representative_lnum = $input[1] if @input;
+    if ($list_roots) {
+        $chunks{$chunk} = [
+            $representative_fname,
+            $representative_lnum,
+            ""
+        ];
+    }
     my $lnum_show_next = 0;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
         my $found_chunk_ref;
@@ -200,7 +215,6 @@ sub extract {
     $being_extracted{$chunk}--;
     return $representative_fname, $representative_lnum, @res;
 }
-
 sub usage {
     my $arg = shift @_;
 
@@ -208,20 +222,29 @@ sub usage {
     Unknown command line argument "$arg". See the manual page for help
     which is also included at the end of this Perl script.
 
-    nofake [-Rchunk] [-L[format]] [file]
-    nofake [-version|-v]
+    nofake [-Rchunk ...] [-L[format]] [file] ...
+    nofake [--version|-v]
+    nofake [--list-all] [file] ...
+    nofake [--list-roots] [file] ...
 EOF
 }
 
+my @chunks = ();
 my @files = ();
 
 while ($_ = shift(@ARGV)) {
     if (/^\-L(.*)/)             { $sync = 1; if ($1 ne '') { $lineformat = $1 }}
-    elsif (/^\-R(.+)/)          { $chunk = $1 }
+    elsif (/^\-R(.+)/)          { push(@chunks, $1) }
     elsif (/^\-(v|-version)$/)  { version(); exit(0) }
+    elsif (/^\--list-all$/)     { $list_all = 1 }
+    elsif (/^\--list-roots$/)   { $list_roots = 1 }
     elsif (/^\-filter$/)        { shift(@ARGV) }  # ignore
     elsif (/^(\-.*)$/)          { usage($1); exit(1) }
     else                        { push(@files, $_) }
+}
+
+if (!@chunks) {
+    push(@chunks, '*');
 }
 
 if (!@files) {
@@ -230,20 +253,40 @@ if (!@files) {
 
 read_file($_) for @files;
 
-if (!$chunks_options{$chunk}) {
-    Carp::croak("The root chunk <<${chunk}>> was not defined.");
-}
-
-{
-    my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
-    my ($representative_fname, $representative_lnum, @res) = extract('', $first_fname, $first_lnum, $chunk);
-    local $\ = undef;
-    print line_directive($representative_fname, $representative_lnum) if $sync;
-    for my $item (@res) {
-        if (ref($item) eq 'ARRAY') {
-            print line_directive($item->[1], $item->[2]);
-        } else {
-            print $item;
+if ($list_all) {
+    print("<<${_}>>") for sort(keys(%chunks_options));
+} elsif ($list_roots) {
+    my @all_chunks = sort(keys(%chunks_options));
+    # first pass, extract all chunks
+    for my $chunk (@all_chunks) {
+        my $opts = $chunks_options{$chunk};
+        my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+        extract('', $first_fname, $first_lnum, $chunk);
+    }
+    # second pass, report
+    for my $chunk (@all_chunks) {
+        my $opts = $chunks_options{$chunk};
+        if ($opts->{nextractions} == 1) {
+            print("<<${chunk}>>");
+        }
+    }
+} else {
+    for my $chunk (@chunks) {
+        if (!$chunks_options{$chunk}) {
+            Carp::croak("The root chunk <<${chunk}>> was not defined.");
+        }
+    }
+    for my $chunk (@chunks) {
+        local $\ = undef;
+        my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+        my ($representative_fname, $representative_lnum, @res) = extract('', $first_fname, $first_lnum, $chunk);
+        print line_directive($representative_fname, $representative_lnum) if $sync;
+        for my $item (@res) {
+            if (ref($item) eq 'ARRAY') {
+                print line_directive($item->[1], $item->[2]);
+            } else {
+                print $item;
+            }
         }
     }
 }
@@ -256,9 +299,13 @@ nofake - simple notangle replacement for the Noweb literate programming tool
 
 =head1 SYNOPSIS
 
-B<nofake> [B<-R>I<chunk>] [B<-L>[I<format>]] [I<file>]
+B<nofake> [B<-R>I<chunk> ...] [B<-L>[I<format>]] [I<file>] ...
 
-B<nofake> [B<-version>|B<-v>]
+B<nofake> [B<--version>|B<-v>]
+
+B<nofake> [B<--list-all>] [I<file>] ...
+
+B<nofake> [B<--list-roots>] [I<file>] ...
 
 =head1 DESCRIPTION
 
@@ -279,8 +326,7 @@ stdin, if no I<chunk> is named, B<nofake> extracts the chunk C<*>.
 =item B<-R>I<chunk>
 
 Extract chunk I<chunk> (recursively) from the noweb file and write it to
-stdout.  Unlike notangle, only one chunk can be extracted per invocation
-of B<nofake>.
+stdout.
 
 =item B<-L>[I<format>]
 
@@ -290,6 +336,14 @@ source code directly.  The optional I<format> allows to provided the
 format of the line directive: C<-L'#line %L "%F"%N'>. In I<format> C<%F>
 indicates the name of the source file, C<%L> the line number, and C<%N>
 a newline. The default C<#line %L "%F"%N> is suitable for C compilers.
+
+=item B<--list-all>
+
+List all I<chunks> in noweb files.
+
+=item B<--list-roots>
+
+List all I<chunks> in noweb files that are not referenced by other chunks.
 
 =back
 
@@ -315,52 +369,25 @@ documentation. However, here is an example:
     #include <stdio.h> /* for printf */
     @
 
-A chunk is defined by C<E<lt>E<lt>chunkE<gt>E<gt>=> and reaches up to
-the next definition or a line starting with C<@>. A chunk can
-recursivley refer to other chunks: chunk C<hello.c> refers to
-C<includes> and C<say hello>. A chunk is referred to by
-C<E<lt>E<lt>chunkE<gt>E<gt>>. To use the C<E<lt>E<lt>> and C<E<gt>E<gt>>
-character literally in a program, precede them with a C<@>.
+A chunk is defined by C<E<lt>E<lt>chunkE<gt>E<gt>=> and reaches up
+to the next definition or a line starting with C<@> followed by a
+space or newline. A chunk can recursivley refer to other chunks:
+chunk C<hello.c> refers to C<includes> and C<say hello>. A chunk
+is referred to by C<E<lt>E<lt>chunkE<gt>E<gt>>. To use the
+C<E<lt>E<lt>> and C<E<gt>E<gt>> character literally in a program,
+precede them with a C<@>.
 
 =head1 LIMITATIONS
 
-The B<nofake> architecture is much simpler than that of notangle(1) and
-therefore many things do not work. In particular:
+The B<nofake> architecture is simpler than that of notangle(1) and
+therefore one thing do not work. In particular:
 
 =over 4
 
 =item *
 
-B<nofake> accepts the B<-R>I<chunk> option only once.
-
-=item *
-
-Line directives (C<#line>) are indented. In the case of cpp(1)-style
-line directives this is still ANSI/ISO C conforming but might cause
-problems with other directives and older versions of cpp(1).
-
-=item *
-
-Do not use C<@> in chunk names.
-
-=item *
-
 B<nofake> does not accept the B<-filter> I<command> option that
 B<notangle> uses to filter chunks before they are emitted.
-
-=item *
-
-A noweb file must not refer to more than one chunk per line. The
-following code is I<not> handled correctly by B<nofake> because the
-chunk C<*> contains two chunk references in one line.
-
-    <<*>>=
-    <<one>> <<one>>
-
-    <<one>>=
-    one
-    @
-
 
 =back
 
