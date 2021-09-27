@@ -3,5 +3,5 @@
 /strlcpy.c
 /protos.h
 /strlcat.c
-/realpath-main
+/realpath
 /realpath.c

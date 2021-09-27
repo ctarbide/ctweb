@@ -254,13 +254,13 @@ function gfl_join(sep, \
 #K"output"
 #>
 
-#<block
-#Olastindex
-#Pcurrent_block
-#S_output
-#Icur_block
-#I"output"
-#>
+# <block
+# Olastindex
+# Pcurrent_block
+# S_output
+# Icur_block
+# I"output"
+# >
 
 #<block
 #Oget
@@ -464,9 +464,9 @@ function gfl_join(sep, \
 #Kidx
 #>
 
-#<gl0
-#Olastindex
-#>
+# <gl0
+# Olastindex
+# >
 
 #<gl0
 #Oclear

@@ -44,20 +44,20 @@ dependency config.h
 source strlcpy.c
 @
 
-=realpath
+=realpath-main
 type c-object
 dependency config.h
-source realpath.c
+dependency protos.h
+source realpath-main.c
 @
 
-=realpath-main
+=realpath
 type c-program
 dependency config.h
-dependency protos.h
 dependency strlcat
 dependency strlcpy
-dependency realpath
-source realpath-main.c
+dependency realpath-main
+source realpath.c
 @
 
 =nofake

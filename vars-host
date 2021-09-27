@@ -9,8 +9,10 @@
 ,LDFLAGS =
 ,LIBS = -lm
 
+,TOUCH = touch
 ,CAT = cat
 ,ECHO = echo
+,CMP = cmp -s
 ,CP = cp -f
 ,MV = mv -f
 ,RM = rm -f

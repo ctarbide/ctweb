@@ -70,9 +70,6 @@ function length_block_output(block_name) {
 function length_current_block_output() {
 	return block[cur_block, "output", ".length"] + 0
 }
-function lastindex_current_block_output() {
-	return cur_block SUBSEP "output" SUBSEP (block[cur_block, "output", ".length"] + 0)
-}
 function get_block_output(block_name, idx) {
 	return block[block_name, "output", idx]
 }
@@ -159,9 +156,6 @@ function length_gl0() {
 }
 function get_gl0(idx) {
 	return gl0[idx]
-}
-function lastindex_gl0() {
-	return (gl0[".length"] + 0)
 }
 function clear_gl0() {
 	return gl0[".length"] = 0
@@ -364,6 +358,48 @@ function join_primary_dependencies(block_name, curlinelen, uses_vpath, new_line_
 }
 function prefix_primary_dependencies(prefix, block_name, uses_vpath, new_line_prefix) {
 	return prefix join_primary_dependencies(block_name, length(prefix), uses_vpath, new_line_prefix)
+}
+function join_nofake_sources(curlinelen, uses_vpath, new_line_prefix, \
+		block_name, res, i, i_len, j, j_len, item, itemlen, type, visited) {
+	res = ""
+	if (!new_line_prefix) {
+		new_line_prefix = "    "
+	}
+	new_line_prefix_len = length(new_line_prefix)
+	j_len = length_block()
+	for (j=0; j<j_len; j++) {
+		block_name = get_block(j);
+		type = get_block__type(block_name)
+		if (type != "nofake") {
+			continue
+		}
+		i_len = length_block_source(block_name)
+		for (i=0; i<i_len; i++) {
+			item = get_block_source(block_name, i)
+			if (visited[item]++) {
+				continue
+			}
+			type = get_block__type(item)
+			if (!type && !uses_vpath) {
+				# just a plain primary dependency that lives
+				# in vpath
+				item = "'$(SRC_PREFIX)" item "'"
+			}
+			itemlen = length(item)
+			curlinelen += 1 + itemlen
+			# + 2 to account for the possibility of " \\"
+			if ((curlinelen + 2) > maxlinelen) {
+				res = res " \\\n" new_line_prefix item
+				curlinelen = new_line_prefix_len + itemlen
+			} else {
+				res = res " " item
+			}
+		}
+	}
+	return res
+}
+function prefix_nofake_sources(prefix, uses_vpath, new_line_prefix) {
+	return prefix join_nofake_sources(length(prefix), uses_vpath, new_line_prefix)
 }
 
 function prefix_c_objects(prefix, block_name, new_line_prefix) {
@@ -584,6 +620,7 @@ END{
 	vars["INSTALL"] = "INSTALL = " tools_prefix "install.sh"
 
 	vars["C_PROGRAMS"] = prefix_c_programs("C_PROGRAMS =")
+	vars["NOFAKE_SOURCES"] = prefix_nofake_sources("NOFAKE_SOURCES =", 1)
 	vars["NOFAKE_CHUNKS"] = prefix_nofake_chunks("NOFAKE_CHUNKS =")
 
 	if (src == ".") {
@@ -643,22 +680,48 @@ END{
 					}
 					clear_gl0()
 					for (j=0; j<j_len; j++) {
-						source = get_block_source(cur_block, j)
-						if (target == source) {
+						item = get_block_source(cur_block, j)
+						if (target == item) {
 							print "# error: the target and the source are the same: \"" target "\""
 							next
 						}
-						push_gl0("'$(SRC_PREFIX)" source "'")
+						type = get_block__type(item)
+						if (!type) {
+							# just a plain primary dependency that lives
+							# in vpath
+							item = "'$(SRC_PREFIX)" item "'"
+						}
+						push_gl0(item)
 					}
-					push_current_block_output(prefix_sources(target ":", cur_block))
-					push_current_block_output(prefix_gl0("\t$(NOFAKE) -R'" name "' $(NOFAKEFLAGS)", "\t    ") \
-						" \\\n\t    >'.tmp." target "'")
-					push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
 					if (get_current_block_targetoption(target, "executable")) {
-						push_current_block_output("\t$(CHMOD_0555) '" target "'")
+						chmod = "$(CHMOD_0555)"
 					} else {
-						push_current_block_output("\t$(CHMOD_0444) '" target "'")
+						chmod = "$(CHMOD_0444)"
 					}
+					push_current_block_output(".STAMP: " target ".stamp")
+					push_current_block_output(prefix_sources(target ":", cur_block))
+					push_current_block_output("\t@set -eux; \\")
+					push_current_block_output("\t    if ! test '(' -e '" target ".stamp' -a -e '" target "' \\")
+					k_len = length_gl0()
+					for (k=0; k<k_len; k++) {
+						source = get_gl0(k)
+						push_current_block_output( \
+								  "\t                  -a '" target ".stamp' -nt " source " \\")
+					}
+					push_current_block_output("\t            ')'; then \\")
+					push_current_block_output("\t        set -x; \\")
+					push_current_block_output(prefix_gl0( \
+								  "\t        $(NOFAKE) -R'" name "' $(NOFAKEFLAGS)", \
+								  "\t            ") " \\")
+					push_current_block_output("\t            >'.tmp." target "'; \\")
+					push_current_block_output("\t        if ! $(CMP) '.tmp." target "' '" target "'; then \\")
+					push_current_block_output("\t            $(MV) '.tmp." target "' '" target "'; \\")
+					push_current_block_output("\t            " chmod " '" target "'; \\")
+					push_current_block_output("\t        else \\")
+					push_current_block_output("\t            $(RM) '.tmp." target "'; \\")
+					push_current_block_output("\t        fi; \\")
+					push_current_block_output("\t        $(TOUCH) '" target ".stamp'; \\")
+					push_current_block_output("\t    fi")
 				}
 			} else if (cur_type == "c-object") {
 				source_len = length_block_source(cur_block)

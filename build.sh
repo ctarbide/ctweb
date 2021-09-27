@@ -16,7 +16,7 @@ die(){ ev=$1; shift; for msg in "$@"; do echo "${msg}"; done; exit "${ev}"; }
 
 srcdir=${0%/*}
 
-make=${MAKE:-bmake}
+make=${MAKE:-make}
 unset MAKE
 
 gen_makefile_sh_0=tools/gen-Makefile.sh

@@ -548,8 +548,6 @@ if ($list_all) {
 }
 @
 
-Create an anonymous block to contain local vars.
-
 <<output lines of $chunk>>=
 local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
