@@ -71,23 +71,16 @@ source realpath.c
 ,	$(CHMOD_0555) nofake
 @
 
-=functions.awk
-,# note: this target is not built automatically since it is
-,#       critical to the bootstrapping process
-,functions.awk: functions.nw
-,	$(NOFAKE) functions.nw > .tmp.functions.awk
-,	$(MV) .tmp.functions.awk functions.awk
-,	$(CHMOD_0444) functions.awk
-@
-
 =gen-Makefile.awk
 ,# note: this target is not built automatically since it is
 ,#       critical to the bootstrapping process
-,gen-Makefile.awk: functions.awk gen-Makefile.nw $(NOFAKE)
+,gen-Makefile.awk: gen-Makefile.nw
+,	$(NOFAKE) -Rgenerator gen-Makefile.nw > .generator.awk
 ,	( set -eu; \
-,	    $(AWK) -f functions.awk < functions.awk; \
+,	    $(NOFAKE) -Roperations gen-Makefile.nw | $(AWK) -f .generator.awk; \
 ,	    $(CAT) gen-Makefile.nw; \
 ,	) | $(NOFAKE) -Rgen-Makefile.awk > .tmp.gen-Makefile.awk
+,	$(RM) .generator.awk
 ,	$(MV) .tmp.gen-Makefile.awk gen-Makefile.awk
 ,	$(CHMOD_0444) gen-Makefile.awk
 @

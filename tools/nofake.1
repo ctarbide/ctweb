@@ -124,7 +124,7 @@
 .\" ========================================================================
 .\"
 .IX Title "NOFAKE 1"
-.TH NOFAKE 1 "2021-09-21" "perl v5.16.3" "User Contributed Perl Documentation"
+.TH NOFAKE 1 "2021-09-30" "perl v5.16.3" "User Contributed Perl Documentation"
 .\" For nroff, turn off justification.  Always turn off hyphenation; it makes
 .\" way too many mistakes in technical documents.
 .if n .ad l
@@ -201,7 +201,8 @@ space or newline. A chunk can recursivley refer to other chunks:
 chunk \f(CW\*(C`hello.c\*(C'\fR refers to \f(CW\*(C`includes\*(C'\fR and \f(CW\*(C`say hello\*(C'\fR. A chunk
 is referred to by \f(CW\*(C`<<chunk>>\*(C'\fR. To use the
 \&\f(CW\*(C`<<\*(C'\fR and \f(CW\*(C`>>\*(C'\fR character literally in a program,
-precede them with a \f(CW\*(C`@\*(C'\fR.
+precede them with a \f(CW\*(C`@\*(C'\fR. Double \f(CW\*(C`@\*(C'\fR on the first column to put
+a literal \f(CW\*(C`@\*(C'\fR there, applies only to the first column.
 .SH "LIMITATIONS"
 .IX Header "LIMITATIONS"
 The \fBnofake\fR architecture is simpler than that of \fInotangle\fR\|(1) and

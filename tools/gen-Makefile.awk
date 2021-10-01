@@ -1,5 +1,4 @@
-# this file was generated from functions.awk and
-# gen-Makefile.nw, see actions for more information
+# this file was generated from gen-Makefile.nw, please do not edit
 
 # Copyright (c) 2021, C. Tarbide.
 # All rights reserved.
@@ -25,56 +24,56 @@ BEGIN{
 	type_error = "!error"
 }
 
-################ beginning of functions.awk
-
-################ [block]
 
 function push_block(name) {
 	block[block[".length"]++] = name
 }
+
 function length_block() {
 	return block[".length"] + 0
 }
+
 function get_block(idx) {
 	return block[idx]
 }
+
 function set_block(idx, val) {
 	return block[idx] = val
 }
 
-################ block type
-
 function get_block__type(name) {
 	return block[name, "type"]
 }
+
 function get_current_block__type() {
 	return block[cur_block, "type"]
 }
+
 function set_current_block__type(type) {
 	return block[cur_block, "type"] = type
 }
-
-################ block [output]
 
 function push_block_output(name, value) {
 	sub(/^        /, "\t", value)
 	block[name, "output", block[name, "output", ".length"]++] = value
 }
+
 function push_current_block_output(value) {
 	sub(/^        /, "\t", value)
 	block[cur_block, "output", block[cur_block, "output", ".length"]++] = value
 }
+
 function length_block_output(block_name) {
 	return block[block_name, "output", ".length"] + 0
 }
+
 function length_current_block_output() {
 	return block[cur_block, "output", ".length"] + 0
 }
+
 function get_block_output(block_name, idx) {
 	return block[block_name, "output", idx]
 }
-
-################ block [chunk]
 
 function push_current_block_chunk(name, target, \
 		idx) {
@@ -82,56 +81,50 @@ function push_current_block_chunk(name, target, \
 	block[cur_block, "chunk", idx, "name"] = name
 	block[cur_block, "chunk", idx, "target"] = target
 }
+
 function length_current_block_chunk() {
 	return block[cur_block, "chunk", ".length"] + 0
 }
-
-################ block [chunk] name
 
 function get_current_block_chunk__name(idx) {
 	return block[cur_block, "chunk", idx, "name"]
 }
 
-################ block [chunk] target
-
 function get_current_block_chunk__target(idx) {
 	return block[cur_block, "chunk", idx, "target"]
 }
 
-################ block target-option
-
 function set_current_block_targetoption(target, option, value) {
 	return block[cur_block, "target-option", target, option] = value
 }
+
 function get_current_block_targetoption(target, option) {
 	return block[cur_block, "target-option", target, option]
 }
 
-################ block [dependency]
-
 function push_current_block_dependency(name) {
 	block[cur_block, "dependency", block[cur_block, "dependency", ".length"]++] = name
 }
+
 function length_block_dependency(block_name) {
 	return block[block_name, "dependency", ".length"] + 0
 }
+
 function get_block_dependency(block_name, idx) {
 	return block[block_name, "dependency", idx]
 }
 
-################ block [source]
-
 function push_current_block_source(source) {
 	block[cur_block, "source", block[cur_block, "source", ".length"]++] = source
 }
+
 function length_block_source(block_name) {
 	return block[block_name, "source", ".length"] + 0
 }
+
 function get_block_source(block_name, idx) {
 	return block[block_name, "source", idx]
 }
-
-################ [chunk]
 
 function push_chunk(name, target, \
 		idx) {
@@ -139,29 +132,34 @@ function push_chunk(name, target, \
 	chunk[idx, "name"] = name
 	chunk[idx, "target"] = target
 }
+
 function length_chunk() {
 	return chunk[".length"] + 0
 }
+
+# target is unique among blocks and chunks
+
 function get_chunk__target(idx) {
 	return chunk[idx, "target"]
 }
 
-################ [gl0]
+# generic list 0, for local, temporary uses
 
 function push_gl0(item) {
 	gl0[gl0[".length"]++] = item
 }
+
 function length_gl0() {
 	return gl0[".length"] + 0
 }
+
 function get_gl0(idx) {
 	return gl0[idx]
 }
+
 function clear_gl0() {
 	return gl0[".length"] = 0
 }
-
-################ end of functions.awk
 
 function set_var_from_env_template(var, def, \
 		env) {
@@ -359,7 +357,7 @@ function join_primary_dependencies(block_name, curlinelen, uses_vpath, new_line_
 function prefix_primary_dependencies(prefix, block_name, uses_vpath, new_line_prefix) {
 	return prefix join_primary_dependencies(block_name, length(prefix), uses_vpath, new_line_prefix)
 }
-function join_nofake_sources(curlinelen, uses_vpath, new_line_prefix, \
+function join_all_nofake_sources(curlinelen, uses_vpath, new_line_prefix, \
 		block_name, res, i, i_len, j, j_len, item, itemlen, type, visited) {
 	res = ""
 	if (!new_line_prefix) {
@@ -398,8 +396,8 @@ function join_nofake_sources(curlinelen, uses_vpath, new_line_prefix, \
 	}
 	return res
 }
-function prefix_nofake_sources(prefix, uses_vpath, new_line_prefix) {
-	return prefix join_nofake_sources(length(prefix), uses_vpath, new_line_prefix)
+function prefix_all_nofake_sources(prefix, uses_vpath, new_line_prefix) {
+	return prefix join_all_nofake_sources(length(prefix), uses_vpath, new_line_prefix)
 }
 
 function prefix_c_objects(prefix, block_name, new_line_prefix) {
@@ -620,7 +618,7 @@ END{
 	vars["INSTALL"] = "INSTALL = " tools_prefix "install.sh"
 
 	vars["C_PROGRAMS"] = prefix_c_programs("C_PROGRAMS =")
-	vars["NOFAKE_SOURCES"] = prefix_nofake_sources("NOFAKE_SOURCES =", 1)
+	vars["NOFAKE_SOURCES"] = prefix_all_nofake_sources("NOFAKE_SOURCES =", 1)
 	vars["NOFAKE_CHUNKS"] = prefix_nofake_chunks("NOFAKE_CHUNKS =")
 
 	if (src == ".") {
@@ -779,3 +777,4 @@ END{
 		print ""
 	}
 }
+

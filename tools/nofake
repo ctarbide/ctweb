@@ -98,6 +98,7 @@ sub read_file {
                 $chunk = '';
             } else {
                 # regular line inside chunk
+                $line =~ s,^\@\@,\@,;
                 set_many(%chunks, $chunk, $ARGV, $., $line . "\n");
             }
         } # else outside chunk - nothing to do
@@ -375,7 +376,8 @@ space or newline. A chunk can recursivley refer to other chunks:
 chunk C<hello.c> refers to C<includes> and C<say hello>. A chunk
 is referred to by C<E<lt>E<lt>chunkE<gt>E<gt>>. To use the
 C<E<lt>E<lt>> and C<E<gt>E<gt>> character literally in a program,
-precede them with a C<@>.
+precede them with a C<@>. Double C<@> on the first column to put
+a literal C<@> there, applies only to the first column.
 
 =head1 LIMITATIONS
 
