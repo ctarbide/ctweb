@@ -251,7 +251,6 @@ my $sync = 0;                         # default: do not emit #line directives
 my %chunks = ();                      # hash table for chunks
 my %chunks_options = ();              # hash table for chunks options
 
-my $list_all = 0;                     # list all chunks
 my $list_roots = 0;                   # list only root chunks
 @
 
@@ -302,16 +301,18 @@ if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
     }
     $chunks_options{$chunk}->{nchunks}++;
 } elsif ($chunk) {
-    if ($line =~ m{^\@$}) {
-        $chunk = '';
-    } elsif ($line =~ m{^\@\s}) {
+    if ($line =~ m{^\@(?:$|\s)}) {
         $chunk = '';
     } else {
         # regular line inside chunk
         $line =~ s,^\@\@,\@,;
         set_many(%chunks, $chunk, $ARGV, $., $line . "\n");
     }
-} # else outside chunk - nothing to do
+} else {
+    if ($line =~ m{^(?:|.*?[^\@])<<}) {
+        Carp::carp("WARNING: Unescaped << in documentation chunk at line ${ARGV}:${.}.");
+    }
+}
 @
 
 <<read file>>=
@@ -430,7 +431,7 @@ if (@chunkreflines > 1) {
         }
     }
 } else {
-    Carp::carp("warning: code chunk @<<${chunkref}@>> is empty (at ${fname}:${lnum}).");
+    Carp::carp("WARNING: Code chunk @<<${chunkref}@>> is empty (at ${fname}:${lnum}).");
 }
 @
 
@@ -439,7 +440,7 @@ my $lnum_show_next = 0;
 <<process line>>=
 my $found_chunk_ref;
 for (;;) {
-    $found_chunk_ref = ($line =~ /^(|.*?[^\@])@<<(.*?[^\@])@>>(.*)$/o);
+    $found_chunk_ref = ($line =~ /^(|.*?[^\@])@<<(.*?[^\@])@>>(.*)/);
     if ($found_chunk_ref) {
         my $before = $1;
         my $chunkref = $2;
@@ -447,7 +448,7 @@ for (;;) {
         if ($chunks_options{$chunkref}) {
             <<process chunk reference>>
         } else {
-            Carp::carp("warning: code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
+            Carp::carp("WARNING: Code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
             last;
         }
         $lnum_show_next = 1;
@@ -456,7 +457,7 @@ for (;;) {
             <<push line after chunk reference>>
             $lnum_show_next = 0;
         }
-        $line =~ s/\@(@<<|@>>)/$1/og;
+        $line =~ s/\@(@<<|@>>)/$1/g;
         push(@res, $line);
         last;
     }
@@ -481,7 +482,7 @@ my %being_extracted = ();
 sub extract {
     my ($prefix, $parent_fname, $parent_lnum, $chunk) = @_;
     if ($being_extracted{$chunk}) {
-        Carp::croak("error: code chunk @<<$chunk@>> is used in its own definition (at ${parent_fname}:${parent_lnum}).");
+        Carp::croak("ERROR: Code chunk @<<$chunk@>> is used in its own definition (at ${parent_fname}:${parent_lnum}).");
     }
     $being_extracted{$chunk}++;
     $chunks_options{$chunk}->{nextractions}++;
@@ -521,6 +522,8 @@ extracting each chunk in the [[chunks]] variable.
 <<process command line and extract chunk>>=
 my @chunks = ();
 my @files = ();
+my $list_all = 0;
+my $no_op = 0;
 
 while ($_ = shift(@ARGV)) {
     if (/^\-L(.*)/)             { $sync = 1; if ($1 ne '') { $lineformat = $1 }}
@@ -529,6 +532,7 @@ while ($_ = shift(@ARGV)) {
     elsif (/^\--list-all$/)     { $list_all = 1 }
     elsif (/^\--list-roots$/)   { $list_roots = 1 }
     elsif (/^\-filter$/)        { shift(@ARGV) }  # ignore
+    elsif (/^\--no-op$/)        { $no_op = 1 }
     elsif (/^(\-.*)$/)          { usage($1); exit(1) }
     else                        { push(@files, $_) }
 }
@@ -543,7 +547,9 @@ if (!@files) {
 
 read_file($_) for @files;
 
-if ($list_all) {
+if ($no_op) {
+    # just read lines, useful for validating documentation chunks
+} elsif ($list_all) {
     print("@<<${_}@>>") for sort(keys(%chunks_options));
 } elsif ($list_roots) {
     <<output roots>>
@@ -568,7 +574,7 @@ for my $item (@res) {
 
 <<verify $chunk is defined>>=
 if (!$chunks_options{$chunk}) {
-    Carp::croak("The root chunk @<<${chunk}@>> was not defined.");
+    Carp::croak("ERROR: The root chunk @<<${chunk}@>> was not defined.");
 }
 @
 
