@@ -36,13 +36,16 @@ generate_makefile(){
     vars=${1}; shift
     actions=${1}; shift
     makefile=${1}; shift
-    if [ "${makefile}" -nt "${vars}" -a "${makefile}" -nt "${actions}" \
-            -a "${makefile}" -nt "${gen_makefile_sh}" \
-            -a "${makefile}" -nt "${gen_makefile_awk}" ]
+    if [ "${makefile}" -nt "${vars}" -a \
+         "${makefile}" -nt "${actions}" -a \
+         "${makefile}" -nt "${gen_makefile_sh}" -a \
+         "${makefile}" -nt "${gen_makefile_awk}" ]
     then
         echo "info: ${makefile} is up to date"
     else
-        VPATH="${vpath}" SUBDIR="${subdir}" TOP="${top}" MAKEFILE="${makefile}" \
+        VPATH="${vpath}" SUBDIR="${subdir}" TOP="${top}" \
+            TOOLSDIRPREFIX="tools/" \
+            MAKEFILE="${makefile}" \
             "${gen_makefile_sh}" "${vars}" "${actions}"
     fi
 }
@@ -73,4 +76,4 @@ ${make} -C src/shell all
 ${make} -C src/tex all
 ${make} -C src/xdoc all
 
-echo "all done for \"${0##*/}\""
+echo "all done for ${0##*/}"

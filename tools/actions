@@ -4,62 +4,6 @@
 ,all: $(C_PROGRAMS)
 @
 
-=strlcpy.c
-type nofake
-source strlcpy.nw
-chunk strlcpy.c
-@
-
-=strlcat.c
-type nofake
-source strlcat.nw
-chunk strlcat.c
-@
-
-=realpath.c
-type nofake
-source strlcpy.nw
-source strlcat.nw
-source realpath.nw
-chunk realpath.c
-@
-
-=protos.h
-type nofake
-source strlcpy.nw
-source strlcat.nw
-source realpath.nw
-chunk prototypes protos.h
-@
-
-=strlcat
-type c-object
-dependency config.h
-source strlcat.c
-@
-
-=strlcpy
-type c-object
-dependency config.h
-source strlcpy.c
-@
-
-=realpath-main
-type c-object
-dependency config.h
-dependency protos.h
-source realpath-main.c
-@
-
-=realpath
-type c-program
-dependency config.h
-dependency strlcat
-dependency strlcpy
-dependency realpath-main
-source realpath.c
-@
-
 =nofake
 ,# note: this target is not built automatically since it is
 ,#       critical to the bootstrapping process
@@ -74,13 +18,17 @@ source realpath.c
 =gen-Makefile.awk
 ,# note: this target is not built automatically since it is
 ,#       critical to the bootstrapping process
-,gen-Makefile.awk: gen-Makefile.nw
-,	$(NOFAKE) -Rgenerator gen-Makefile.nw > .generator.awk
-,	( set -eu; \
-,	    $(NOFAKE) -Roperations gen-Makefile.nw | $(AWK) -f .generator.awk; \
-,	    $(CAT) gen-Makefile.nw; \
-,	) | $(NOFAKE) -Rgen-Makefile.awk > .tmp.gen-Makefile.awk
-,	$(RM) .generator.awk
+,gen-Makefile-s1.nw: gen-Makefile.nw
+,	$(NOFAKE) -Rgenerator gen-Makefile.nw \
+,	    > .tmp.gen-Makefile-s1.awk
+,	$(MV) .tmp.gen-Makefile-s1.awk gen-Makefile-s1.awk
+,	$(NOFAKE) -Roperations gen-Makefile.nw | $(AWK) -f gen-Makefile-s1.awk \
+,	    > .tmp.gen-Makefile-s1.nw
+,	$(MV) .tmp.gen-Makefile-s1.nw gen-Makefile-s1.nw
+,	$(CHMOD_0444) gen-Makefile-s1.awk gen-Makefile-s1.nw
+,gen-Makefile.awk: gen-Makefile-s1.nw gen-Makefile.nw
+,	$(NOFAKE) -Rgen-Makefile.awk gen-Makefile-s1.nw gen-Makefile.nw \
+,	    > .tmp.gen-Makefile.awk
 ,	$(MV) .tmp.gen-Makefile.awk gen-Makefile.awk
 ,	$(CHMOD_0444) gen-Makefile.awk
 @

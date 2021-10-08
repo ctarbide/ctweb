@@ -1,7 +1,4 @@
 *.o
+*-s1.awk
+*-s1.nw
 /Makefile
-/strlcpy.c
-/protos.h
-/strlcat.c
-/realpath
-/realpath.c

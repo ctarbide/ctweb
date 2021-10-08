@@ -310,7 +310,7 @@ if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
     }
 } else {
     if ($line =~ m{^(?:|.*?[^\@])<<}) {
-        Carp::carp("WARNING: Unescaped << in documentation chunk at line ${ARGV}:${.}.");
+        Carp::carp("WARNING: Unescaped @<< in documentation chunk at line ${ARGV}:${.}.");
     }
 }
 @
