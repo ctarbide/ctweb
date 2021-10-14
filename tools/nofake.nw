@@ -373,15 +373,8 @@ while (@chunkreflines and ref($chunkreflines[0])) {
 }
 @
 
-<<process chunk reference>>=
-my $line_new = undef;
-<<extract and process chunk reference>>
-if (defined($line_new)) {
-    $line = $line_new;
-} else {
-    last;
-}
-@
+Defining $line_new will effectively replace the current line and search for
+more references.  This allows more than one chunk reference per line.
 
 <<extract and process chunk reference>>=
 my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $fname, $lnum, $chunkref);
@@ -446,10 +439,14 @@ for (;;) {
         my $chunkref = $2;
         my $after = $3;
         if ($chunks_options{$chunkref}) {
-            <<process chunk reference>>
+            my $line_new = undef;
+            <<extract and process chunk reference>>
+            if (defined($line_new)) {
+                $line = $line_new;
+                next;
+            }
         } else {
             Carp::carp("WARNING: Code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
-            last;
         }
         $lnum_show_next = 1;
     } else {
@@ -459,8 +456,8 @@ for (;;) {
         }
         $line =~ s/\@(@<<|@>>)/$1/g;
         push(@res, $line);
-        last;
     }
+    last;
 }
 @
 

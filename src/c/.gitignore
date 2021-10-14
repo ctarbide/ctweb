@@ -1,5 +1,4 @@
 *.o
-/*-all.c
 /Makefile
 /strsave.c
 /strsave.h

@@ -4,12 +4,6 @@
 ,all: $(NOFAKE_CHUNKS)
 @
 
-=clean
-,.PHONY: clean
-,clean:
-,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
-@
-
 =multlang
 type nofake
 source multlang.nw
@@ -24,3 +18,8 @@ chunk nwmac.tex nwmac.tex
 chunk noweb.sty noweb.sty
 @
 
+=clean
+,.PHONY: clean
+,clean:
+,	$(RM) *.$(OBJEXT) $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+@

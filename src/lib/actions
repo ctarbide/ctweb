@@ -4,12 +4,6 @@
 ,all: $(NOFAKE_CHUNKS)
 @
 
-=clean
-,.PHONY: clean
-,clean:
-,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
-@
-
 =toascii
 type nofake
 source toascii.nw
@@ -22,4 +16,10 @@ type nofake
 source noxref.nw
 chunk * noxref
 target-option noxref executable 1
+@
+
+=clean
+,.PHONY: clean
+,clean:
+,	$(RM) *.$(OBJEXT) $(C_PROGRAMS) $(NOFAKE_CHUNKS)
 @

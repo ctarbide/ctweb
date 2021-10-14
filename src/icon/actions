@@ -157,5 +157,5 @@ chunk * smldefs.icn
 =clean
 ,.PHONY: clean
 ,clean:
-,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+,	$(RM) *.$(OBJEXT) $(C_PROGRAMS) $(NOFAKE_CHUNKS)
 @

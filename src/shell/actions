@@ -4,12 +4,6 @@
 ,all: $(NOFAKE_CHUNKS)
 @
 
-=clean
-,.PHONY: clean
-,clean:
-,	$(RM) *.$(OBJEXT) *-all.c $(C_PROGRAMS) $(NOFAKE_CHUNKS)
-@
-
 =notangle
 type nofake
 source notangle.nw
@@ -43,4 +37,10 @@ type nofake
 source toroff.nw
 chunk toroff toroff
 target-option toroff executable 1
+@
+
+=clean
+,.PHONY: clean
+,clean:
+,	$(RM) *.$(OBJEXT) $(C_PROGRAMS) $(NOFAKE_CHUNKS)
 @

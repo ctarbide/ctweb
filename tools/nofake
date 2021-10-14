@@ -195,12 +195,10 @@ sub extract {
                     }
                     if (defined($line_new)) {
                         $line = $line_new;
-                    } else {
-                        last;
+                        next;
                     }
                 } else {
                     Carp::carp("WARNING: Code chunk <<${chunkref}>> does not exist (at ${fname}:${lnum}).");
-                    last;
                 }
                 $lnum_show_next = 1;
             } else {
@@ -210,8 +208,8 @@ sub extract {
                 }
                 $line =~ s/\@(<<|>>)/$1/g;
                 push(@res, $line);
-                last;
             }
+            last;
         }
     }
     $being_extracted{$chunk}--;
