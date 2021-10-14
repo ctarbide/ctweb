@@ -251,6 +251,7 @@ function join_c_objects(block_name, curlinelen, new_line_prefix, \
 		if (type != "c-object") {
 			continue
 		}
+		sub("\\." objext "$", "", item)
 		item = item "." objext
 		<<concat item to res>>
 	}
@@ -646,21 +647,17 @@ function is_generated_target(item) {
 }
 @
 
-<<compile source recipe>>=
-if (is_generated_target(source)) {
-	push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '" source "'")
-} else {
-	push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '$(SRC_PREFIX)" source "'")
-}
-@
-
 <<finalize c-object, source is ok>>=
 source = get_block_source(cur_block, 0)
-obj = cur_block "." objext
-target = obj
+target = cur_block
+sub("\\." objext "$", "", target)
+target = target "." objext
 mark_as_generated_target(target)
+if (!is_generated_target(source)) {
+	source = "$(SRC_PREFIX)" source
+}
 push_current_block_output(prefix_primary_dependencies(target ": " source, cur_block, 1, "    "))
-<<compile source recipe>>
+push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target " '" source "'")
 @
 
 <<finalize c-object>>=
@@ -680,7 +677,10 @@ obj = source
 if (sub(/\.c$/, "." objext, obj)) {
 	if (!is_generated_target(obj)) {
 		push_current_block_output(prefix_primary_dependencies(obj ": " source, cur_block, 1, "    "))
-		<<compile source recipe>>
+		if (!is_generated_target(source)) {
+			source = "$(SRC_PREFIX)" source
+		}
+		push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '" source "'")
 	}
 	target = cur_block exesuffix
 	mark_as_generated_target(target)
@@ -752,25 +752,30 @@ push_current_block_output(prefix_sources(target ":", cur_block))
 <<finalize nofake chunk recipe commands>>
 @
 
+<<finalize nofake: loop chunks>>=
+for (i=0; i<i_len && nerrors == 0; i++) {
+	name = get_current_block_chunk__name(i)
+	target = get_current_block_chunk__target(i)
+	if (known_sources[target]) {
+		show_error("The target and the source are the same: \"" target "\".")
+		break
+	}
+	if (is_generated_target(target)) {
+		show_error("The target \"" target "\" is already being generated.");
+		break
+	}
+	mark_as_generated_target(target)
+	<<finalize nofake chunk>>
+}
 <<finalize nofake>>=
 i_len = length_block_source(cur_block)
 if (i_len) {
 	<<finalize nofake: clear and setup gl0 and known sources>>
 	i_len = length_block_chunk(cur_block)
-	for (i=0; i<i_len; i++) {
-		name = get_current_block_chunk__name(i)
-		target = get_current_block_chunk__target(i)
-		if (known_sources[target]) {
-			show_error("The target and the source are the same: \"" target "\".")
-			break
-		}
-		if (is_generated_target(target)) {
-			show_error("The target \"" target "\" is already being generated.");
-			break
-		}
-		mark_as_generated_target(target)
-		<<finalize nofake chunk>>
+	if (!i_len) {
+		show_error("There are no chunks defined (thus no targets).")
 	}
+	<<finalize nofake: loop chunks>>
 } else {
 	show_error("There are no sources defined to generate the targets.")
 }
@@ -815,6 +820,21 @@ push_current_block_output(target ": " s1_nw)
 <<finalize nofake-awk chunk recipe commands>>
 @
 
+<<finalize nofake-awk: loop chunks>>=
+for (i=0; i<i_len && nerrors == 0; i++) {
+	name = get_current_block_chunk__name(i)
+	target = get_current_block_chunk__target(i)
+	if (known_sources[target]) {
+		show_error("The target and the source are the same: \"" target "\".")
+		break
+	}
+	if (is_generated_target(target)) {
+		show_error("The target \"" target "\" is already being generated.");
+		break
+	}
+	mark_as_generated_target(target)
+	<<finalize nofake-awk chunk>>
+}
 <<finalize nofake-awk>>=
 i_len = length_block_source(cur_block)
 if (i_len) {
@@ -824,20 +844,10 @@ if (i_len) {
 	if (!known_sources[target]) {
 		<<finalize nofake-awk: stage 1 source recipe>>
 		i_len = length_block_chunk(cur_block)
-		for (i=0; i<i_len; i++) {
-			name = get_current_block_chunk__name(i)
-			target = get_current_block_chunk__target(i)
-			if (known_sources[target]) {
-				show_error("The target and the source are the same: \"" target "\".")
-				break
-			}
-			if (is_generated_target(target)) {
-				show_error("The target \"" target "\" is already being generated.");
-				break
-			}
-			mark_as_generated_target(target)
-			<<finalize nofake-awk chunk>>
+		if (!i_len) {
+			show_error("There are no chunks defined (thus no targets).")
 		}
+		<<finalize nofake-awk: loop chunks>>
 	} else {
 		show_error("The target and the source are the same: \"" target "\".")
 	}

@@ -259,6 +259,7 @@ function join_c_objects(block_name, curlinelen, new_line_prefix, \
 		if (type != "c-object") {
 			continue
 		}
+		sub("\\." objext "$", "", item)
 		item = item "." objext
 		itemlen = length(item)
 		curlinelen += 1 + itemlen
@@ -724,11 +725,10 @@ END{
 				if (sub(/\.c$/, "." objext, obj)) {
 					if (!is_generated_target(obj)) {
 						push_current_block_output(prefix_primary_dependencies(obj ": " source, cur_block, 1, "    "))
-						if (is_generated_target(source)) {
-							push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '" source "'")
-						} else {
-							push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '$(SRC_PREFIX)" source "'")
+						if (!is_generated_target(source)) {
+							source = "$(SRC_PREFIX)" source
 						}
+						push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '" source "'")
 					}
 					target = cur_block exesuffix
 					mark_as_generated_target(target)
@@ -759,7 +759,10 @@ END{
 					push_gl0(item)
 				}
 				i_len = length_block_chunk(cur_block)
-				for (i=0; i<i_len; i++) {
+				if (!i_len) {
+					show_error("There are no chunks defined (thus no targets).")
+				}
+				for (i=0; i<i_len && nerrors == 0; i++) {
 					name = get_current_block_chunk__name(i)
 					target = get_current_block_chunk__target(i)
 					if (known_sources[target]) {
@@ -840,7 +843,10 @@ END{
 					push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
 					push_current_block_output("\t$(CHMOD_0444) '" s1_awk "' '" target "'")
 					i_len = length_block_chunk(cur_block)
-					for (i=0; i<i_len; i++) {
+					if (!i_len) {
+						show_error("There are no chunks defined (thus no targets).")
+					}
+					for (i=0; i<i_len && nerrors == 0; i++) {
 						name = get_current_block_chunk__name(i)
 						target = get_current_block_chunk__target(i)
 						if (known_sources[target]) {
@@ -894,15 +900,15 @@ END{
 			source_len = length_block_source(cur_block)
 			if (source_len == 1) {
 				source = get_block_source(cur_block, 0)
-				obj = cur_block "." objext
-				target = obj
+				target = cur_block
+				sub("\\." objext "$", "", target)
+				target = target "." objext
 				mark_as_generated_target(target)
-				push_current_block_output(prefix_primary_dependencies(target ": " source, cur_block, 1, "    "))
-				if (is_generated_target(source)) {
-					push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '" source "'")
-				} else {
-					push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " obj " '$(SRC_PREFIX)" source "'")
+				if (!is_generated_target(source)) {
+					source = "$(SRC_PREFIX)" source
 				}
+				push_current_block_output(prefix_primary_dependencies(target ": " source, cur_block, 1, "    "))
+				push_current_block_output("\t$(CC) $(CFLAGS) $(SRC_INCLUDE) -o " target " '" source "'")
 			} else if (source_len) {
 				show_error("c-object \"" cur_block "\" expects 1 source, " source_len " provided")
 			} else {
