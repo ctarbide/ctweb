@@ -96,15 +96,7 @@ early only if there is no current block defined.
 <<auxiliary functions>>=
 function show_error(errmsg) {
 	nerrors++
-	if (reading_file) {
-		print("# ERROR: " errmsg)
-	} else {
-		if (cur_block) {
-			push_current_block_output("# ERROR: " errmsg)
-		} else {
-			print("# ERROR: " errmsg)
-		}
-	}
+	print("# ERROR: " errmsg)
 }
 @
 
@@ -172,7 +164,7 @@ function prefix_nofake_chunks(prefix) {
 <<filter-out non-primary dependencies>>=
 if (type ~ "^(c-object)$") {
 	continue
-} else if (type ~ "^(nofake)$") {
+} else if (type ~ "^nofake(-awk)?$") {
 	# it is common for a nofake chunk target
 	# match a primary dependency, just proceed
 } else if (!type) {
@@ -437,17 +429,18 @@ if (target) {
 <<finalize internal-vars>>=
 push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
 push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
-push_current_block_output(vars["OBJEXT"])
-push_current_block_output(vars["EXESUFFIX"])
-push_current_block_output(vars["SRC_PREFIX"])
-push_current_block_output(vars["SRC_INCLUDE"])
-push_current_block_output(vars["SUBDIR"])
-push_current_block_output(vars["TOP"])
-push_current_block_output(vars["NOFAKE"])
-push_current_block_output(vars["INSTALL"])
-push_current_block_output(vars["C_PROGRAMS"])
-push_current_block_output(vars["NOFAKE_SOURCES"])
-push_current_block_output(vars["NOFAKE_CHUNKS"])
+push_current_block_output_deferred("OBJEXT")
+push_current_block_output_deferred("EXESUFFIX")
+push_current_block_output_deferred("SRC_PREFIX")
+push_current_block_output_deferred("SRC_INCLUDE")
+push_current_block_output_deferred("SUBDIR")
+push_current_block_output_deferred("TOP")
+push_current_block_output_deferred("NOFAKE")
+push_current_block_output_deferred("INSTALL")
+push_current_block_output_deferred("C_PROGRAMS")
+push_current_block_output_deferred("NOFAKE_SOURCES")
+push_current_block_output_deferred("NOFAKE_CHUNKS")
+push_current_block_output_deferred("GENERATED_TARGETS")
 @
 
 <<regexp matches>>=
@@ -541,14 +534,6 @@ if (cur_type == "c-program") {
 }
 @
 
-<<output block lines>>=
-j_len = length_block_output(cur_block)
-for (j=0; j<j_len; j++) {
-	print get_block_output(cur_block, j)
-}
-print ""
-@
-
 <<END>>=
 END{
 	print "# automatically generated, please to not edit"
@@ -614,14 +599,44 @@ END{
 	vars["SUBDIR"] = "SUBDIR = " subdir
 	vars["TOP"] = "TOP = " top
 
+	# process all blocks
 	h_len = length_block()
 	for (h=0; h<h_len; h++) {
 		cur_block = get_block(h)
 		cur_type = get_block__type(cur_block)
-		print "# **************** " cur_block " " (cur_type ? "(type: " cur_type ")" : "(no type)")
 		<<finalize block>>
-		<<output block lines>>
 		<<failure exit if error>>
+	}
+
+	# compute some vars
+	clear_gl0()
+	for (item in generated_targets) {
+		if (generated_targets[item]) {
+			# always do a proper check for items in awk arrays
+			push_gl0(item)
+		}
+	}
+	vars["GENERATED_TARGETS"] = prefix_gl0("GENERATED_TARGETS =")
+
+	i_len = length_deferred()
+	for (i=0; i<i_len; i++) {
+		# non-trivial refers to a non-trivial index into block
+		nontrivial = get_deferred(i)
+		varname = get_block(nontrivial)
+		set_block(nontrivial, vars[varname])
+	}
+
+	# output all blocks
+	i_len = length_block()
+	for (i=0; i<i_len; i++) {
+		cur_block = get_block(i)
+		cur_type = get_block__type(cur_block)
+		print "# **************** " cur_block " " (cur_type ? "(type: " cur_type ")" : "(no type)")
+		j_len = length_block_output(cur_block)
+		for (j=0; j<j_len; j++) {
+			print get_block_output(cur_block, j)
+		}
+		print ""
 	}
 
 	if (length_block_output("")) {
@@ -644,6 +659,13 @@ function mark_as_generated_target(target) {
 }
 function is_generated_target(item) {
 	return generated_targets[item]
+}
+@
+
+<<auxiliary functions>>=
+function push_current_block_output_deferred(s) {
+	push_deferred(lastindex_current_block_output())
+	push_current_block_output(s)
 }
 @
 
@@ -676,6 +698,7 @@ source = get_block_source(cur_block, 0)
 obj = source
 if (sub(/\.c$/, "." objext, obj)) {
 	if (!is_generated_target(obj)) {
+		mark_as_generated_target(obj)
 		push_current_block_output(prefix_primary_dependencies(obj ": " source, cur_block, 1, "    "))
 		if (!is_generated_target(source)) {
 			source = "$(SRC_PREFIX)" source
@@ -764,6 +787,7 @@ for (i=0; i<i_len && nerrors == 0; i++) {
 		show_error("The target \"" target "\" is already being generated.");
 		break
 	}
+	mark_as_generated_target(target ".stamp")
 	mark_as_generated_target(target)
 	<<finalize nofake chunk>>
 }
@@ -786,10 +810,14 @@ push_current_block_output(prefix_sources(target ":", cur_block))
 push_current_block_output(prefix_sources("\t$(NOFAKE) -Rgenerator", cur_block) " \\")
 push_current_block_output("\t    > '.tmp." s1_awk "'")
 push_current_block_output("\t$(MV) '.tmp." s1_awk "' '" s1_awk "'")
-push_current_block_output(prefix_sources("\t$(NOFAKE) -Roperations", cur_block) " | $(AWK) -f '" s1_awk "' \\")
+push_current_block_output(prefix_sources("\t$(NOFAKE) -Roperations", cur_block) " \\")
+push_current_block_output("\t    > '.tmp." s1_ops "'")
+push_current_block_output("\t$(MV) '.tmp." s1_ops "' '" s1_ops "'")
+push_current_block_output("\t$(AWK) -f '" s1_awk "' '" s1_ops "' \\")
 push_current_block_output("\t    > '.tmp." target "'")
 push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
-push_current_block_output("\t$(CHMOD_0444) '" s1_awk "' '" target "'")
+push_current_block_output("\t$(CHMOD_0444) '" s1_awk "' '" s1_ops "' '" target "'")
+push_current_block_output("")
 @
 
 Same algorithm.
@@ -798,13 +826,15 @@ Same algorithm.
 <<finalize nofake: clear and setup gl0 and known sources>>
 @
 
-<<finalize nofake-awk: setup s1_awk, s1_nw and target vars>>=
+<<finalize nofake-awk: setup s1_awk, s1_ops, s1_nw and target vars>>=
 s1_prefix = cur_block
 if (sub(/\.nw$/, "", s1_prefix)) target = cur_block
 else target = s1_prefix "-s1.nw"
 s1_awk = s1_prefix "-s1.awk"
+s1_ops = s1_prefix "-s1.ops"
 s1_nw = target
 mark_as_generated_target(s1_awk)
+mark_as_generated_target(s1_ops)
 mark_as_generated_target(target)
 @
 
@@ -832,6 +862,7 @@ for (i=0; i<i_len && nerrors == 0; i++) {
 		show_error("The target \"" target "\" is already being generated.");
 		break
 	}
+	mark_as_generated_target(target ".stamp")
 	mark_as_generated_target(target)
 	<<finalize nofake-awk chunk>>
 }
@@ -839,7 +870,7 @@ for (i=0; i<i_len && nerrors == 0; i++) {
 i_len = length_block_source(cur_block)
 if (i_len) {
 	<<finalize nofake-awk: clear and setup gl0 and known sources>>
-	<<finalize nofake-awk: setup s1_awk, s1_nw and target vars>>
+	<<finalize nofake-awk: setup s1_awk, s1_ops, s1_nw and target vars>>
 	push_gl0("'" s1_nw "'")
 	if (!known_sources[target]) {
 		<<finalize nofake-awk: stage 1 source recipe>>
@@ -1094,6 +1125,7 @@ function tabify(s) { gsub(/        /, "\t", s); return s}
 <<block [dependency]>>
 <<block [source]>>
 <<[chunk]>>
+<<[deferred]>>
 <<[gl0]>>
 @@
 @
@@ -1194,6 +1226,14 @@ function tabify(s) { gsub(/        /, "\t", s); return s}
 #Kblock_name
 #K"output"
 #Kidx
+#>
+
+#<block
+#Olastindex
+#Pcurrent_block
+#S_output
+#Icur_block
+#I"output"
 #>
 @
 
@@ -1357,6 +1397,30 @@ function tabify(s) { gsub(/        /, "\t", s); return s}
 #Aidx
 #Kidx
 #K"target"
+#>
+@
+
+lines that will be computed only on the last moment, after all lines has been processed
+
+<<[deferred]>>=
+#<deferred
+#Opush
+#Avarname
+#Vvarname
+#>
+
+#<deferred
+#Olength
+#>
+
+#<deferred
+#Oget
+#Aidx
+#Kidx
+#>
+
+#<deferred
+#Olastindex
 #>
 @
 

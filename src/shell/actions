@@ -42,5 +42,5 @@ target-option toroff executable 1
 =clean
 ,.PHONY: clean
 ,clean:
-,	$(RM) *.$(OBJEXT) $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+,	$(RM) *.$(OBJEXT) $(GENERATED_TARGETS)
 @

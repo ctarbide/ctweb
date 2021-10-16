@@ -81,6 +81,10 @@ function get_block_output(block_name, idx) {
 	return block[block_name, "output", idx]
 }
 
+function lastindex_current_block_output() {
+	return cur_block SUBSEP "output" SUBSEP (block[cur_block, "output", ".length"] + 0)
+}
+
 function push_current_block_chunk(name, target, \
 		idx) {
 	idx = block[cur_block, "chunk", ".length"]++
@@ -148,6 +152,21 @@ function length_chunk() {
 function get_chunk__target(idx) {
 	return chunk[idx, "target"]
 }
+function push_deferred(varname) {
+	deferred[deferred[".length"]++] = varname
+}
+
+function length_deferred() {
+	return deferred[".length"] + 0
+}
+
+function get_deferred(idx) {
+	return deferred[idx]
+}
+
+function lastindex_deferred() {
+	return (deferred[".length"] + 0)
+}
 
 # generic list 0, for local, temporary uses
 
@@ -177,15 +196,7 @@ function join_ARGV(sep, \
 }
 function show_error(errmsg) {
 	nerrors++
-	if (reading_file) {
-		print("# ERROR: " errmsg)
-	} else {
-		if (cur_block) {
-			push_current_block_output("# ERROR: " errmsg)
-		} else {
-			print("# ERROR: " errmsg)
-		}
-	}
+	print("# ERROR: " errmsg)
 }
 function set_var_from_env_template(var, def, \
 		env) {
@@ -307,7 +318,7 @@ function how_many_primary_dependencies(block_name, \
 		type = get_block__type(item)
 		if (type ~ "^(c-object)$") {
 			continue
-		} else if (type ~ "^(nofake)$") {
+		} else if (type ~ "^nofake(-awk)?$") {
 			# it is common for a nofake chunk target
 			# match a primary dependency, just proceed
 		} else if (!type) {
@@ -333,7 +344,7 @@ function join_primary_dependencies(block_name, curlinelen, uses_vpath, new_line_
 		type = get_block__type(item)
 		if (type ~ "^(c-object)$") {
 			continue
-		} else if (type ~ "^(nofake)$") {
+		} else if (type ~ "^nofake(-awk)?$") {
 			# it is common for a nofake chunk target
 			# match a primary dependency, just proceed
 		} else if (!type) {
@@ -438,6 +449,10 @@ function mark_as_generated_target(target) {
 }
 function is_generated_target(item) {
 	return generated_targets[item]
+}
+function push_current_block_output_deferred(s) {
+	push_deferred(lastindex_current_block_output())
+	push_current_block_output(s)
 }
 
 /^=[a-zA-Z][a-zA-Z0-9\-_.]*$/ {
@@ -712,11 +727,11 @@ END{
 	vars["SUBDIR"] = "SUBDIR = " subdir
 	vars["TOP"] = "TOP = " top
 
+	# process all blocks
 	h_len = length_block()
 	for (h=0; h<h_len; h++) {
 		cur_block = get_block(h)
 		cur_type = get_block__type(cur_block)
-		print "# **************** " cur_block " " (cur_type ? "(type: " cur_type ")" : "(no type)")
 		if (cur_type == "c-program") {
 			source_len = length_block_source(cur_block)
 			if (source_len == 1) {
@@ -724,6 +739,7 @@ END{
 				obj = source
 				if (sub(/\.c$/, "." objext, obj)) {
 					if (!is_generated_target(obj)) {
+						mark_as_generated_target(obj)
 						push_current_block_output(prefix_primary_dependencies(obj ": " source, cur_block, 1, "    "))
 						if (!is_generated_target(source)) {
 							source = "$(SRC_PREFIX)" source
@@ -773,6 +789,7 @@ END{
 						show_error("The target \"" target "\" is already being generated.");
 						break
 					}
+					mark_as_generated_target(target ".stamp")
 					mark_as_generated_target(target)
 					push_current_block_output(".STAMP: " target ".stamp")
 					push_current_block_output(prefix_sources(target ":", cur_block))
@@ -829,8 +846,10 @@ END{
 				if (sub(/\.nw$/, "", s1_prefix)) target = cur_block
 				else target = s1_prefix "-s1.nw"
 				s1_awk = s1_prefix "-s1.awk"
+				s1_ops = s1_prefix "-s1.ops"
 				s1_nw = target
 				mark_as_generated_target(s1_awk)
+				mark_as_generated_target(s1_ops)
 				mark_as_generated_target(target)
 				push_gl0("'" s1_nw "'")
 				if (!known_sources[target]) {
@@ -838,10 +857,14 @@ END{
 					push_current_block_output(prefix_sources("\t$(NOFAKE) -Rgenerator", cur_block) " \\")
 					push_current_block_output("\t    > '.tmp." s1_awk "'")
 					push_current_block_output("\t$(MV) '.tmp." s1_awk "' '" s1_awk "'")
-					push_current_block_output(prefix_sources("\t$(NOFAKE) -Roperations", cur_block) " | $(AWK) -f '" s1_awk "' \\")
+					push_current_block_output(prefix_sources("\t$(NOFAKE) -Roperations", cur_block) " \\")
+					push_current_block_output("\t    > '.tmp." s1_ops "'")
+					push_current_block_output("\t$(MV) '.tmp." s1_ops "' '" s1_ops "'")
+					push_current_block_output("\t$(AWK) -f '" s1_awk "' '" s1_ops "' \\")
 					push_current_block_output("\t    > '.tmp." target "'")
 					push_current_block_output("\t$(MV) '.tmp." target "' '" target "'")
-					push_current_block_output("\t$(CHMOD_0444) '" s1_awk "' '" target "'")
+					push_current_block_output("\t$(CHMOD_0444) '" s1_awk "' '" s1_ops "' '" target "'")
+					push_current_block_output("")
 					i_len = length_block_chunk(cur_block)
 					if (!i_len) {
 						show_error("There are no chunks defined (thus no targets).")
@@ -857,6 +880,7 @@ END{
 							show_error("The target \"" target "\" is already being generated.");
 							break
 						}
+						mark_as_generated_target(target ".stamp")
 						mark_as_generated_target(target)
 						push_current_block_output(".STAMP: " target ".stamp")
 						push_current_block_output(target ": " s1_nw)
@@ -917,31 +941,58 @@ END{
 		} else if (cur_type == "internal-vars") {
 			push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
 			push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
-			push_current_block_output(vars["OBJEXT"])
-			push_current_block_output(vars["EXESUFFIX"])
-			push_current_block_output(vars["SRC_PREFIX"])
-			push_current_block_output(vars["SRC_INCLUDE"])
-			push_current_block_output(vars["SUBDIR"])
-			push_current_block_output(vars["TOP"])
-			push_current_block_output(vars["NOFAKE"])
-			push_current_block_output(vars["INSTALL"])
-			push_current_block_output(vars["C_PROGRAMS"])
-			push_current_block_output(vars["NOFAKE_SOURCES"])
-			push_current_block_output(vars["NOFAKE_CHUNKS"])
+			push_current_block_output_deferred("OBJEXT")
+			push_current_block_output_deferred("EXESUFFIX")
+			push_current_block_output_deferred("SRC_PREFIX")
+			push_current_block_output_deferred("SRC_INCLUDE")
+			push_current_block_output_deferred("SUBDIR")
+			push_current_block_output_deferred("TOP")
+			push_current_block_output_deferred("NOFAKE")
+			push_current_block_output_deferred("INSTALL")
+			push_current_block_output_deferred("C_PROGRAMS")
+			push_current_block_output_deferred("NOFAKE_SOURCES")
+			push_current_block_output_deferred("NOFAKE_CHUNKS")
+			push_current_block_output_deferred("GENERATED_TARGETS")
 		} else if (cur_type) {
 			show_error("exhaustion-7: " FILENAME ":" FNR ": type: " cur_type)
 		} else if (!length_block_output(cur_block)) {
 			show_error("type not defined in an empty block")
 		}
+		if (nerrors) {
+			print "\nERROR: Exiting with failure due to the presence of errors.\n"
+			exit 1
+		}
+	}
+
+	# compute some vars
+	clear_gl0()
+	for (item in generated_targets) {
+		if (generated_targets[item]) {
+			# always do a proper check for items in awk arrays
+			push_gl0(item)
+		}
+	}
+	vars["GENERATED_TARGETS"] = prefix_gl0("GENERATED_TARGETS =")
+
+	i_len = length_deferred()
+	for (i=0; i<i_len; i++) {
+		# non-trivial refers to a non-trivial index into block
+		nontrivial = get_deferred(i)
+		varname = get_block(nontrivial)
+		set_block(nontrivial, vars[varname])
+	}
+
+	# output all blocks
+	i_len = length_block()
+	for (i=0; i<i_len; i++) {
+		cur_block = get_block(i)
+		cur_type = get_block__type(cur_block)
+		print "# **************** " cur_block " " (cur_type ? "(type: " cur_type ")" : "(no type)")
 		j_len = length_block_output(cur_block)
 		for (j=0; j<j_len; j++) {
 			print get_block_output(cur_block, j)
 		}
 		print ""
-		if (nerrors) {
-			print "\nERROR: Exiting with failure due to the presence of errors.\n"
-			exit 1
-		}
 	}
 
 	if (length_block_output("")) {

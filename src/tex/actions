@@ -21,5 +21,5 @@ chunk noweb.sty noweb.sty
 =clean
 ,.PHONY: clean
 ,clean:
-,	$(RM) *.$(OBJEXT) $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+,	$(RM) *.$(OBJEXT) $(GENERATED_TARGETS)
 @

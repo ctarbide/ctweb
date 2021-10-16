@@ -73,5 +73,5 @@ chunk * sl2h.1
 =clean
 ,.PHONY: clean
 ,clean:
-,	$(RM) *.$(OBJEXT) $(C_PROGRAMS) $(NOFAKE_CHUNKS)
+,	$(RM) *.$(OBJEXT) $(GENERATED_TARGETS)
 @
