@@ -256,34 +256,6 @@ function join_nofake_chunks(curlinelen, \
 function prefix_nofake_chunks(prefix) {
 	return prefix join_nofake_chunks(length(prefix))
 }
-function join_c_objects(block_name, curlinelen, new_line_prefix, \
-		res, i, i_len, item, itemlen, type) {
-	res = ""
-	if (!new_line_prefix) {
-		new_line_prefix = "    "
-	}
-	new_line_prefix_len = length(new_line_prefix)
-	i_len = length_block_dependency(block_name)
-	for (i=0; i<i_len; i++) {
-		item = get_block_dependency(block_name, i)
-		type = get_block__type(item)
-		if (type != "c-object") {
-			continue
-		}
-		sub("\\." objext "$", "", item)
-		item = item "." objext
-		itemlen = length(item)
-		curlinelen += 1 + itemlen
-		# + 2 to account for the possibility of " \\"
-		if ((curlinelen + 2) > maxlinelen) {
-			res = res " \\\n" new_line_prefix item
-			curlinelen = new_line_prefix_len + itemlen
-		} else {
-			res = res " " item
-		}
-	}
-	return res
-}
 function join_gl0(curlinelen, new_line_prefix, \
 		res, i, i_len, item, itemlen) {
 	res = ""
@@ -316,12 +288,15 @@ function how_many_primary_dependencies(block_name, \
 	for (i=0; i<i_len; i++) {
 		item = get_block_dependency(block_name, i)
 		type = get_block__type(item)
-		if (type ~ "^(c-object)$") {
+		if (type ~ /^c-object$/) {
 			continue
-		} else if (type ~ "^nofake(-awk)?$") {
+		} else if (type ~ /^nofake(-awk)?$/) {
 			# it is common for a nofake chunk target
 			# match a primary dependency, just proceed
 		} else if (!type) {
+			if (generated_from_type[item] ~ /^c-object$/) {
+				continue
+			}
 			# just a plain primary dependency
 		} else {
 			show_error("exhaustion-1: " FILENAME ":" FNR ": type \"" type "\" (filtering out non-primary dependencies)")
@@ -342,12 +317,15 @@ function join_primary_dependencies(block_name, curlinelen, uses_vpath, new_line_
 	for (i=0; i<i_len; i++) {
 		item = get_block_dependency(block_name, i)
 		type = get_block__type(item)
-		if (type ~ "^(c-object)$") {
+		if (type ~ /^c-object$/) {
 			continue
-		} else if (type ~ "^nofake(-awk)?$") {
+		} else if (type ~ /^nofake(-awk)?$/) {
 			# it is common for a nofake chunk target
 			# match a primary dependency, just proceed
 		} else if (!type) {
+			if (generated_from_type[item] ~ /^c-object$/) {
+				continue
+			}
 			# just a plain primary dependency
 		} else {
 			show_error("exhaustion-1: " FILENAME ":" FNR ": type \"" type "\" (filtering out non-primary dependencies)")
@@ -440,12 +418,51 @@ function join_sources(block_name, curlinelen, new_line_prefix, \
 function prefix_sources(prefix, block_name, new_line_prefix) {
 	return prefix join_sources(block_name, length(prefix), new_line_prefix)
 }
-
+function join_c_objects(block_name, curlinelen, new_line_prefix, \
+		res, i, i_len, item, itemlen, type) {
+	res = ""
+	if (!new_line_prefix) {
+		new_line_prefix = "    "
+	}
+	new_line_prefix_len = length(new_line_prefix)
+	i_len = length_block_dependency(block_name)
+	for (i=0; i<i_len; i++) {
+		item = get_block_dependency(block_name, i)
+		type = get_block__type(item)
+		if (type != "c-object") {
+			if (generated_from_type[item] != "c-object") {
+				continue
+			}
+		}
+		sub("\\." objext "$", "", item)
+		item = item "." objext
+		itemlen = length(item)
+		curlinelen += 1 + itemlen
+		# + 2 to account for the possibility of " \\"
+		if ((curlinelen + 2) > maxlinelen) {
+			res = res " \\\n" new_line_prefix item
+			curlinelen = new_line_prefix_len + itemlen
+		} else {
+			res = res " " item
+		}
+	}
+	return res
+}
 function prefix_c_objects(prefix, block_name, new_line_prefix) {
 	return prefix join_c_objects(block_name, length(prefix), new_line_prefix)
 }
 function mark_as_generated_target(target) {
 	generated_targets[target]++
+	if (cur_block) {
+		generated_from_block[target] = cur_block
+	} else {
+		show_error("Generated target \"" target "\" is not associated with a block.")
+	}
+	if (cur_type) {
+		generated_from_type[target] = cur_type
+	} else {
+		show_error("Generated target \"" target "\" is not associated with a block type.")
+	}
 }
 function is_generated_target(item) {
 	return generated_targets[item]
@@ -969,6 +986,7 @@ END{
 	for (item in generated_targets) {
 		if (generated_targets[item]) {
 			# always do a proper check for items in awk arrays
+			# when using 'for in'
 			push_gl0(item)
 		}
 	}
