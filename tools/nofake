@@ -124,8 +124,11 @@ sub extract {
             ""
         ];
     }
-    my $lnum_show_next = 0;
+    my $lnum_previous = -1;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
+        if ($sync and $lnum != $lnum_previous + 1) {
+            push(@res, [0, $fname, $lnum]);
+        }
         my $found_chunk_ref;
         for (;;) {
             $found_chunk_ref = ($line =~ /^(|.*?[^\@])<<(.*?[^\@])>>(.*)/);
@@ -136,7 +139,6 @@ sub extract {
                 if ($chunks_options{$chunkref}) {
                     my $line_new = undef;
                     my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $fname, $lnum, $chunkref);
-                    if ($sync) { push(@res, [0, $fname, $chunkreflnum]); }
                     while (@chunkreflines and ref($chunkreflines[0])) {
                         # propagate special items early, before processing lines
                         push(@res, shift(@chunkreflines));
@@ -200,17 +202,14 @@ sub extract {
                 } else {
                     Carp::carp("WARNING: Code chunk <<${chunkref}>> does not exist (at ${fname}:${lnum}).");
                 }
-                $lnum_show_next = 1;
+                $lnum = -1; # force line number directive
             } else {
-                if ($sync && $lnum_show_next) {
-                    push(@res, [1, $fname, $lnum]);
-                    $lnum_show_next = 0;
-                }
                 $line =~ s/\@(<<|>>)/$1/g;
                 push(@res, $line);
             }
             last;
         }
+        $lnum_previous = $lnum;
     }
     $being_extracted{$chunk}--;
     return $representative_fname, $representative_lnum, @res;
@@ -285,7 +284,6 @@ if ($no_op) {
         local $\ = undef;
         my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
         my ($representative_fname, $representative_lnum, @res) = extract('', $first_fname, $first_lnum, $chunk);
-        print line_directive($representative_fname, $representative_lnum) if $sync;
         for my $item (@res) {
             if (ref($item) eq 'ARRAY') {
                 print line_directive($item->[1], $item->[2]);
@@ -417,6 +415,10 @@ SUCH DAMAGE.
 =head1 AUTHOR
 
 Christian Lindig <lindig@eecs.harard.edu>
+
+Please note that this is a derived work and is not maintained
+by Lindig, the canonical source for this version is
+https://github.com/ctarbide/ctweb/blob/master/tools/nofake.nw.
 
 =head1 SEE ALSO
 

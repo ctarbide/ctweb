@@ -165,6 +165,10 @@ SUCH DAMAGE.
 
 Christian Lindig <lindig@eecs.harard.edu>
 
+Please note that this is a derived work and is not maintained
+by Lindig, the canonical source for this version is
+https://github.com/ctarbide/ctweb/blob/master/tools/nofake.nw.
+
 =head1 SEE ALSO
 
 noweb(1), notangle(1), perl(1), cpp(1)
@@ -349,20 +353,6 @@ if ($before_has_content) {
 }
 @
 
-Special item [[0]] is a line directive, at the chunk
-reference preamble.
-
-<<push line at chunk preamble>>=
-push(@res, [0, $fname, $chunkreflnum]);
-@
-
-Special item [[1]] is also line directive, but at the chunk
-reference epilog.
-
-<<push line after chunk reference>>=
-push(@res, [1, $fname, $lnum]);
-@
-
 These special items will be processed at the top level, after all
 files have been read.
 
@@ -378,7 +368,6 @@ more references.  This allows more than one chunk reference per line.
 
 <<extract and process chunk reference>>=
 my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $fname, $lnum, $chunkref);
-if ($sync) { <<push line at chunk preamble>> }
 <<propagate header special items>>
 if (@chunkreflines > 1) {
     # many lines
@@ -428,8 +417,6 @@ if (@chunkreflines > 1) {
 }
 @
 
-<<process line vars>>=
-my $lnum_show_next = 0;
 <<process line>>=
 my $found_chunk_ref;
 for (;;) {
@@ -448,12 +435,8 @@ for (;;) {
         } else {
             Carp::carp("WARNING: Code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
         }
-        $lnum_show_next = 1;
+        $lnum = -1; # force line number directive
     } else {
-        if ($sync && $lnum_show_next) {
-            <<push line after chunk reference>>
-            $lnum_show_next = 0;
-        }
         $line =~ s/\@(@<<|@>>)/$1/g;
         push(@res, $line);
     }
@@ -474,6 +457,12 @@ if ($list_roots) {
 }
 @
 
+Special item [[0]] is a line number directive.
+
+<<push line number directive>>=
+push(@res, [0, $fname, $lnum]);
+@
+
 <<sub extract>>=
 my %being_extracted = ();
 sub extract {
@@ -488,9 +477,13 @@ sub extract {
     my $representative_fname = $input[0] if @input;
     my $representative_lnum = $input[1] if @input;
     <<remove chunk data if listing roots>>
-    <<process line vars>>
+    my $lnum_previous = -1;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
+        if ($sync and $lnum != $lnum_previous + 1) {
+            <<push line number directive>>
+        }
         <<process line>>
+        $lnum_previous = $lnum;
     }
     $being_extracted{$chunk}--;
     return $representative_fname, $representative_lnum, @res;
@@ -559,7 +552,6 @@ if ($no_op) {
 local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
 my ($representative_fname, $representative_lnum, @res) = extract('', $first_fname, $first_lnum, $chunk);
-print line_directive($representative_fname, $representative_lnum) if $sync;
 for my $item (@res) {
     if (ref($item) eq 'ARRAY') {
         print line_directive($item->[1], $item->[2]);
