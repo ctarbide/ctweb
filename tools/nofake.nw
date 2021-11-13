@@ -367,7 +367,7 @@ Defining $line_new will effectively replace the current line and search for
 more references.  This allows more than one chunk reference per line.
 
 <<extract and process chunk reference>>=
-my ($chunkreffname, $chunkreflnum, @chunkreflines) = extract($prefix . $before, $fname, $lnum, $chunkref);
+my @chunkreflines = extract($prefix . $before, $fname, $lnum, $chunkref);
 <<propagate header special items>>
 if (@chunkreflines > 1) {
     # many lines
@@ -448,12 +448,8 @@ a chunk referenced at least once is definitely a non-root chunk, so we need to
 render all chunks at most once
 
 <<remove chunk data if listing roots>>=
-if ($list_roots) {
-    $chunks{$chunk} = [
-        $representative_fname,
-        $representative_lnum,
-        ""
-    ];
+if ($list_roots and @input) {
+    $chunks{$chunk} = [$input[0], $input[1], ""];
 }
 @
 
@@ -474,8 +470,6 @@ sub extract {
     $chunks_options{$chunk}->{nextractions}++;
     my @res = ();
     my @input = get_many($chunks{$chunk});
-    my $representative_fname = $input[0] if @input;
-    my $representative_lnum = $input[1] if @input;
     <<remove chunk data if listing roots>>
     my $lnum_previous = -1;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
@@ -486,7 +480,7 @@ sub extract {
         $lnum_previous = $lnum;
     }
     $being_extracted{$chunk}--;
-    return $representative_fname, $representative_lnum, @res;
+    return @res;
 }
 @
 
@@ -551,8 +545,7 @@ if ($no_op) {
 <<output lines of $chunk>>=
 local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
-my ($representative_fname, $representative_lnum, @res) = extract('', $first_fname, $first_lnum, $chunk);
-for my $item (@res) {
+for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
     if (ref($item) eq 'ARRAY') {
         print line_directive($item->[1], $item->[2]);
     } else {
