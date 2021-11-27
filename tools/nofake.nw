@@ -1,15 +1,30 @@
-% vim: ts=8 et sw=4:
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, urlcolor=blue, linkcolor=blue, citecolor=red}
+\usepackage{multicol}
+\usepackage{noweb}
+\pagestyle{noweb}
+\noweboptions{shift}
 
-\def\nofake{{\small NOFAKE}}
-\def\noweb{{\small NOWEB}}
+\def\nofake{\texttt{nofake}}
+\def\noweb{\texttt{noweb}}
 \def\notangle{\texttt{notangle}}
 
 % l2h substitution nofake NOFAKE
 % l2h substitution noweb NOWEB
 % l2h substitution notangle NOTANGLE
 
+\title{{\nofake} - simple {\notangle} replacement for the {\noweb} literate programming tool}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
 % ------------------------------------------------------------------
-\section{NoFake}
+\section{{\nofake}}
 % ------------------------------------------------------------------
 
 {\nofake} is a Perl script that acts as a simple substitute for the
@@ -21,17 +36,16 @@ source code from it for compilation. However, not everybody who wants to
 compile the source code has a full {\noweb} installation available. For
 these cases {\nofake} can be shipped with the source code to provide a
 substitute for the {\notangle} command. {\nofake} has a much simpler and
-less general architecture than {\notangle} and can handle only the most
-common cases correctly. Therefore it is no substitute during program
-development.
+less general architecture than {\notangle} but can handle most cases
+correctly.
 
 {\nofake} is derived from NegWeb 1.0.1 that was released by its author
 Darrell Johnson \path|<darrell@boswa.com>| into the public domain at
 \path|http://boswa.com/misc/negweb/|.
 
-Note that quoting hell is upon you: this source is itself a literate
-program in {\noweb} syntax. It has to use the delimiters [[@<<]] and
-[[@>>]] literally and hence has to escape them with a preceding [[@]].
+Note that this source is itself a literate program in {\noweb} syntax.
+It has to use the delimiters [[@<<]] and [[@>>]] literally and hence
+has to escape them with a preceding [[@]].
 
 % ------------------------------------------------------------------
 \subsection{Manual Page}
@@ -313,7 +327,7 @@ if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
         set_many(%chunks, $chunk, $ARGV, $., $line . "\n");
     }
 } else {
-    if ($line =~ m{^(?:|.*?[^\@])<<}) {
+    if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
         Carp::carp("WARNING: Unescaped @<< in documentation chunk at line ${ARGV}:${.}.");
     }
 }
@@ -341,11 +355,11 @@ not denote a chunk, but the delimiter literally.
 When dealing with line numbers, {\nofake} prioritize document structure,
 {\notangle} is more liberal in breaking lines to put line directives.
 
-<<setup $before_has_content>>=
+<<setup \$before\_has\_content>>=
 my $before_has_content = $before !~ m{^\s*$};
-<<setup $indent and $before_has_content>>=
+<<setup \$indent and \$before\_has\_content>>=
 my $indent;
-<<setup $before_has_content>>
+<<setup \$before\_has\_content>>
 if ($before_has_content) {
     $indent = ' ' x length($before);
 } else {
@@ -363,7 +377,7 @@ while (@chunkreflines and ref($chunkreflines[0])) {
 }
 @
 
-Defining $line_new will effectively replace the current line and search for
+Defining \$line\_new will effectively replace the current line and search for
 more references.  This allows more than one chunk reference per line.
 
 <<extract and process chunk reference>>=
@@ -371,7 +385,7 @@ my @chunkreflines = extract($prefix . $before, $fname, $lnum, $chunkref);
 <<propagate header special items>>
 if (@chunkreflines > 1) {
     # many lines
-    <<setup $indent and $before_has_content>>
+    <<setup \$indent and \$before\_has\_content>>
     my $first = shift(@chunkreflines);
     my $last = pop(@chunkreflines);
     if ($before_has_content or $first ne "\n") {
@@ -405,7 +419,7 @@ if (@chunkreflines > 1) {
         chomp(my $tmp = $chunkreflines[0]);
         $line_new = $before . $tmp . $after . "\n";
     } else {
-        <<setup $before_has_content>>
+        <<setup \$before\_has\_content>>
         if ($before_has_content or $chunkreflines[0] ne "\n") {
             push(@res, $before . $chunkreflines[0]);
         } else {
@@ -444,7 +458,7 @@ for (;;) {
 }
 @
 
-a chunk referenced at least once is definitely a non-root chunk, so we need to
+A chunk referenced at least once is definitely a non-root chunk, so we need to
 render all chunks at most once
 
 <<remove chunk data if listing roots>>=
@@ -542,7 +556,7 @@ if ($no_op) {
 }
 @
 
-<<output lines of $chunk>>=
+<<output lines of \$chunk>>=
 local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
 for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
@@ -554,7 +568,7 @@ for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
 }
 @
 
-<<verify $chunk is defined>>=
+<<verify \$chunk is defined>>=
 if (!$chunks_options{$chunk}) {
     Carp::croak("ERROR: The root chunk @<<${chunk}@>> was not defined.");
 }
@@ -562,10 +576,10 @@ if (!$chunks_options{$chunk}) {
 
 <<output lines>>=
 for my $chunk (@chunks) {
-    <<verify $chunk is defined>>
+    <<verify \$chunk is defined>>
 }
 for my $chunk (@chunks) {
-    <<output lines of $chunk>>
+    <<output lines of \$chunk>>
 }
 @
 
@@ -611,9 +625,9 @@ sub get_many {
 }
 @
 
-This was taken from 'perl\5.8.3\bin\runperl.bat' and tested under
-Windows XP SP3 (x86). Simply extract it to somewhere in the PATH, see
-documentation below in DESCRIPTION section.
+This was taken from [[perl\5.8.3\bin\runperl.bat]] and tested under Windows XP
+SP3 (x86). Simply extract it to somewhere in the PATH, see documentation below
+in DESCRIPTION section.
 
 <<nofake.bat>>=
 @rem = '--*-Perl-*--
@@ -700,3 +714,15 @@ perl, perlwin32, pl2bat.bat
 __END__
 :endofperl
 @
+
+\bibliographystyle{plain}
+\bibliography{web}
+
+\section{List of all chunks}
+\nowebchunks
+
+% \begin{multicols}{2}[\section{Index}]
+% \nowebindex
+% \end{multicols}
+
+\end{document}

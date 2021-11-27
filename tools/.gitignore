@@ -2,3 +2,10 @@
 *-s1.awk
 *-s1.nw
 /Makefile
+/nofake.aux
+/nofake.fdb_latexmk
+/nofake.fls
+/nofake.log
+/nofake.out
+/nofake.tex
+/nofake.toc

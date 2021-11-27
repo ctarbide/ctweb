@@ -99,7 +99,7 @@ sub read_file {
                 set_many(%chunks, $chunk, $ARGV, $., $line . "\n");
             }
         } else {
-            if ($line =~ m{^(?:|.*?[^\@])<<}) {
+            if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
                 Carp::carp("WARNING: Unescaped << in documentation chunk at line ${ARGV}:${.}.");
             }
         }

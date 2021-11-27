@@ -33,6 +33,21 @@
 ,	$(CHMOD_0444) gen-Makefile.awk
 @
 
+=nofake.pdf
+,nofake.tex: nofake.nw
+,	noweave -delay -index -latex nofake.nw > .tmp.nofake.tex
+,	$(CHMOD_0444) .tmp.nofake.tex
+,	$(MV) .tmp.nofake.tex nofake.tex
+,nofake.pdf: nofake.tex nofake.tex
+,	latexmk -pdf nofake
+@
+
+=update-Makefiles
+,.PHONY: update-Makefiles
+,update-Makefiles:
+,	cd '$(TOP)' && MAKE='$(MAKE)' ./build.sh
+@
+
 =clean
 ,.PHONY: clean
 ,clean:

@@ -914,6 +914,7 @@ if (i_len) {
 
 /^$/ {
 	<<match preamble>>
+	# no-op
 	<<match epilog>>
 }
 

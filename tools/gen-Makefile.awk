@@ -650,6 +650,7 @@ function push_current_block_output_deferred(s) {
 		print "\nERROR: preamble: Exiting with failure due to the presence of errors.\n"
 		exit 1
 	}
+	# no-op
 	if (nerrors) {
 		print "\nERROR: epilog: Exiting with failure due to the presence of errors.\n"
 		exit 1
