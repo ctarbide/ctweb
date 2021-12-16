@@ -20,7 +20,7 @@ if [ -n "$verbose" ]; then echo $backend $noindex $delay $shortxref 1>&2; fi
 @
 The first item of initialization is to locate the {\tt noweb} library.
 <<initialization>>= 
-LIB=|LIBDIR|
+LIB='<<LIBDIR>>'
 @
 <<initialization>>=
 markup=$LIB/markup backend=$LIB/totex
@@ -273,12 +273,12 @@ looks for
 first on the user's
 .B PATH,
 then in
-.B |LIBDIR|.
+.B <<LIBDIR>>.
 Such filters
 can be used to add features to
 .I noweave;
 for an example, see
-.B |LIBDIR|/noxref.krom.
+.B <<LIBDIR>>/noxref.krom.
 .I Noweave
 supports up to four filters; one can get more by shell trickery, 
 for example, \fB-filter "icon.filter | noidx"\fP.

@@ -320,3 +320,4 @@ before its definition.
 
 <<Prototypes>>=
 int reject_match(Recognizer r, char *id, char *input, char *current);
+@

@@ -157,3 +157,4 @@ static char *emit_up_to(FILE *f, char *s, char *limit);
 errormsg(Fatal, "%s: couldn't open temporary file\n", progname);
 <<complain about writing temp file and exit>>=
 errormsg(Fatal, "%s: error writing temporary file\n", progname);
+@

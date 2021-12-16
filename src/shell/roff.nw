@@ -53,8 +53,8 @@ knowledgeable users can modify document formatting without changing
 the awk program.
 <<toroff>>=
 #!/bin/sh
-LIB=|LIBDIR|
-AWK=nawk
+LIB='<<LIBDIR>>'
+AWK='<<AWK>>'
 <<process arguments>>
 <<invoke awk program>>
 @ .P
@@ -631,9 +631,9 @@ The location of [[macrodir]] is likely to require customization.
 # noroff -- run troff using tags file trick
 
 ROFF="groff"
-AWK=nawk
-macrodir=|LIBDIR|
-LIB=|LIBDIR|
+AWK='<<AWK>>'
+macrodir='<<LIBDIR>>'
+LIB='<<LIBDIR>>'
 
 opts=
 

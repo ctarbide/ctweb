@@ -4,3 +4,10 @@
 /noweave
 /noweb
 /toroff
+/noweave.aux
+/noweave.fdb_latexmk
+/noweave.fls
+/noweave.log
+/noweave.pdf
+/noweave.tex
+/config.nw

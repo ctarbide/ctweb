@@ -689,7 +689,7 @@ Since I'm not, I'll just say that we either
 accumulate text using the function [[S.text]], which exists for that
 purpose, or else we do something special upon encountering a special character.
 
-The [[<<take actions appropriate to new text>>]] 
+The [[<<take actions appropriate to new text>>]]
 chunk may do something special with the text in
 case we're not in the default state (for example, we may be scanning
 for the end of a comment).
@@ -945,7 +945,8 @@ cs := if pos(0) then ""
 if /S.ignoring | cs == ("else"|"fi") | cstab[cs] === (Ciffalse|Ciftrue) then
   do_cs(S, cs)
 else
-  &null # error("### Ignoring \\", cs)
+  # error("### Ignoring \\", cs)
+  &null
 <<other fields of state>>=
 , csletters
 <<initial values for other fields of state>>=
@@ -1947,7 +1948,8 @@ l := ["part", "chapter", "section", "subsection", "subsubsection",
       "paragraph", "subparagraph"]
 leveltab := table()
 every i := 1 to *l do
-  leveltab[l[i]] := i - 2  # making section level 1
+  # making section level 1
+  leveltab[l[i]] := i - 2
 @
 \subsubsection{Counters}
 <<*>>=

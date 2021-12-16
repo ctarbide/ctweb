@@ -81,5 +81,3 @@ PrettyPrinter new_prettyprinter(PrettyPrinterCallback callback, void *closure) {
   }
 }
 @ 
-
-

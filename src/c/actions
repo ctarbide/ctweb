@@ -1,11 +1,21 @@
 
-=local-vars
-,NOFAKEFLAGS = -L
-@
-
 =all
 ,.PHONY: all
 ,all: $(NOFAKE_CHUNKS) $(C_PROGRAMS)
+@
+
+=local-vars
+,NOFAKEFLAGS = -L
+
+,NOWEAVE = noweave
+
+# If the list of nofake sources changes, you have to manually update list
+# below from generated Makefile
+
+,NOFAKE_SOURCES_FOR_DOC = strsave.nw nwmktemp.nw match.nw columns.nw \
+,    fakepretty.nw modtrees.nw getline.nw main.nw errors.nw mnt.nw \
+,    finduses.nw notangle.nw markup.nw pretty.nw recognize.nw \
+,    modules.nw markmain.nw doc.nw
 @
 
 =strsave.c
@@ -26,10 +36,6 @@ type nofake
 source match.nw
 chunk header match.h
 chunk * match.c
-@
-
-=doc
-,# TODO: type noweave
 @
 
 =columns.c
@@ -123,6 +129,12 @@ chunk * modules.c
 type nofake
 source markmain.nw
 chunk * markmain.c
+@
+
+=doc.tex
+type nofake
+source doc.nw
+chunk * doc-with-c-lines.tex
 @
 
 =modules
@@ -226,6 +238,39 @@ source main.c
 =nwmktemp
 type c-program
 source nwmktemp.c
+@
+
+# use 'latexmk -lualatex' below to allow \usepackage{lua-visual-debug}
+# in texlive
+
+=doc
+,doc.tex: doc-with-c-lines.tex
+,	$(SED) 's,^#line ,%#line ,' doc-with-c-lines.tex > .tmp.doc.tex
+,	$(CHMOD_0444) .tmp.doc.tex
+,	$(MV) .tmp.doc.tex doc.tex
+,doc-allcode.tex: $(NOFAKE_SOURCES_FOR_DOC)
+,	$(NOWEAVE) -n -index -latex $(NOFAKE_SOURCES_FOR_DOC) > .tmp.doc-allcode.tex
+,	$(CHMOD_0444) .tmp.doc-allcode.tex
+,	$(MV) .tmp.doc-allcode.tex doc-allcode.tex
+,doc.pdf: doc.tex doc-allcode.tex
+#	latexmk -lualatex doc.tex
+,	latexmk -pdf doc.tex
+@
+
+=install
+,.PHONY: install
+,install: $(C_PROGRAMS)
+,	$(INSTALL) -D -m 755 mnt '$(PREFIX)/lib/noweb/mnt'
+,	$(INSTALL) -D -m 755 finduses '$(PREFIX)/lib/noweb/finduses'
+,	$(INSTALL) -D -m 755 markup '$(PREFIX)/lib/noweb/markup'
+,	$(INSTALL) -D -m 755 nt '$(PREFIX)/lib/noweb/nt'
+,	$(INSTALL) -D -m 755 nwmktemp '$(PREFIX)/lib/noweb/nwmktemp'
+@
+
+=update-Makefiles
+,.PHONY: update-Makefiles
+,update-Makefiles:
+,	cd '$(TOP)' && MAKE='$(MAKE)' '$(VPATH_FROM_TOP)/build.sh'
 @
 
 =clean

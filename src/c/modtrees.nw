@@ -1,6 +1,5 @@
 % Copyright 1991 by Norman Ramsey.  All rights reserved.
 % See file COPYRIGHT for more information.
-@ 
 \subsection{Support for looking up modules by name}
 Trees of modules.
 A table of modules with insert and lookup, but no delete.
@@ -98,3 +97,4 @@ void apply_to_tree(TNODE *p, void (*fun)(Module)) {
 void apply_each_module(void (*fun)(Module)) {
     apply_to_tree(root,fun);
 }
+@

@@ -1,13 +1,24 @@
 
 =all
 ,.PHONY: all
-,all: all-c all-shell all-tex
+,all: all-c all-icon all-shell all-tex
+@
+
+=install
+,.PHONY: install
+,install: install-c install-icon install-shell install-tex
 @
 
 =all-c
 ,.PHONY: all-c
 ,all-c:
 ,	$(MAKE) -C c all
+@
+
+=all-icon
+,.PHONY: all-icon
+,all-icon:
+,	$(MAKE) -C icon all
 @
 
 =all-shell
@@ -20,4 +31,34 @@
 ,.PHONY: all-tex
 ,all-tex:
 ,	$(MAKE) -C tex all
+@
+
+=install-c
+,.PHONY: install-c
+,install-c:
+,	$(MAKE) -C c install
+@
+
+=install-icon
+,.PHONY: install-icon
+,install-icon:
+,	$(MAKE) -C icon install
+@
+
+=install-shell
+,.PHONY: install-shell
+,install-shell:
+,	$(MAKE) -C shell install
+@
+
+=install-tex
+,.PHONY: install-tex
+,install-tex:
+,	$(MAKE) -C tex install
+@
+
+=update-Makefiles
+,.PHONY: update-Makefiles
+,update-Makefiles:
+,	cd '$(TOP)' && MAKE='$(MAKE)' '$(VPATH_FROM_TOP)/build.sh'
 @

@@ -11,7 +11,8 @@ Here's the organization of the source:
 <<copyright notice>>
 # $Id: noweb.nw,v 1.3 1997/09/13 20:29:56 nr Exp $
 # $Name:  $
-LIB=|LIBDIR|
+AWK='<<AWK>>'
+LIB='<<LIBDIR>>'
 markup=$LIB/markup mntopt=-L status=0 tex=1 output=1
 <<consume options, setting [[tex]], [[output]], [[mntopt]], and [[markup]]>>
 if [ $# -eq 0 ]; then <<complain of no args and exit>>; fi
@@ -54,7 +55,7 @@ When writing {\TeX} output, I call [[$markup]] a second time to expand tabs.
 texname=`echo "$source" | sed '/\./s/\.[^.]*$//'`
 texname="$texname.tex"
 PATH="$PATH:$LIB" $markup "$source" | $LIB/finduses -noquote | $LIB/noidx -delay | 
-nawk '{print}
+$AWK '{print}
 /^@defn [^ ]*$/ { print "@literal \\let\\nwnotused=\\nwoutput{}" }' |
 $LIB/totex -delay | cpif $texname
 <<consume options, setting [[tex]], [[output]], [[mntopt]], and [[markup]]>>=

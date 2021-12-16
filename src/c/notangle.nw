@@ -1,6 +1,5 @@
 % Copyright 1991 by Norman Ramsey.  All rights reserved.
 % See file COPYRIGHT for more information.
-@ 
 \subsection{Tangling a single file}
 A cheap imitation of tangle.
 The idea is a very cheap implementation of tangle.
@@ -182,3 +181,4 @@ if (line==NULL) {
 void insist(char *line, char *keyword, char *msg);
 <<complain of botched code chunk>>=
 errorat(loc.filename, loc.lineno, Error, "botched code chunk `%s'", line);
+@

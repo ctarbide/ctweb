@@ -1,19 +1,15 @@
 
 =all
+,ICON_PROGRAMS = totex tohtml noidx noindex elide htmltoc l2h sl2h disambiguate \
+,    docs2comments pdcached pipedocs xchunks autodefs.tex autodefs.icon autodefs.yacc \
+,    autodefs.sml autodefs.cee autodefs.pascal autodefs.promela autodefs.lrtl \
+,    autodefs.asdl autodefs.mmix
 ,.PHONY: all
-,all: $(NOFAKE_CHUNKS)
+,all: $(NOFAKE_CHUNKS) $(ICON_PROGRAMS)
 @
 
-=yaccdefs
-type nofake
-source yaccdefs.nw
-chunk * yaccdefs.icn
-@
-
-=mmixdefs
-type nofake
-source mmixdefs.nw
-chunk * mmixdefs.icn
+=more-vars
+,ICONT=icont
 @
 
 =defns
@@ -22,34 +18,60 @@ source defns.nw
 chunk * defns.icn
 @
 
+=yaccdefs
+type nofake
+source defns.nw
+source yaccdefs.nw
+chunk * yaccdefs.icn
+@
+
+=mmixdefs
+type nofake
+source defns.nw
+source mmixdefs.nw
+chunk * mmixdefs.icn
+@
+
 =texdefs
 type nofake
+source defns.nw
 source texdefs.nw
 chunk * texdefs.icn
 @
 
 =icondefs
 type nofake
+source defns.nw
 source icondefs.nw
 chunk * icondefs.icn
 @
 
+=lrtldefs
+type nofake
+source defns.nw
+source lrtldefs.nw
+chunk * lrtldefs.icn
+@
+
 =asdldefs
 type nofake
+source defns.nw
 source asdldefs.nw
 chunk * asdldefs.icn
 @
 
 =pascaldefs
 type nofake
+source defns.nw
 source pascaldefs.nw
 chunk * pascaldefs.icn
 @
 
-=l2h
+=l2h-sl2h
 type nofake
 source l2h.nw
 chunk * l2h.icn
+chunk * sl2h.icn
 @
 
 =tohtml
@@ -96,6 +118,7 @@ chunk * docs2comments.icn
 
 =cdefs
 type nofake
+source defns.nw
 source cdefs.nw
 chunk * cdefs.icn
 @
@@ -136,22 +159,104 @@ source pipedocs.nw
 chunk * pipedocs.icn
 @
 
-=lrtldefs
-type nofake
-source lrtldefs.nw
-chunk * lrtldefs.icn
-@
-
 =promeladefs
 type nofake
+source defns.nw
 source promeladefs.nw
 chunk * promeladefs.icn
 @
 
 =smldefs
 type nofake
+source defns.nw
 source smldefs.nw
 chunk * smldefs.icn
+@
+
+=icon-programs
+,totex: totex.icn
+,	$(ICONT) -s -u totex.icn
+,tohtml: tohtml.icn
+,	$(ICONT) -s -u tohtml.icn
+,noidx: noidx.icn
+,	$(ICONT) -s -u noidx.icn
+,noindex: noindex.icn
+,	$(ICONT) -s -u noindex.icn
+,elide: elide.icn
+,	$(ICONT) -s -u elide.icn
+,htmltoc: htmltoc.icn
+,	$(ICONT) -s -u htmltoc.icn
+,l2h: l2h.icn
+,	$(ICONT) -s -u l2h.icn
+,sl2h: sl2h.icn
+,	$(ICONT) -s -u sl2h.icn
+,disambiguate: disambiguate.icn
+,	$(ICONT) -s -u disambiguate.icn
+,docs2comments: docs2comments.icn
+,	$(ICONT) -s -u docs2comments.icn
+,pdcached: pdcached.icn
+,	$(ICONT) -s -u pdcached.icn
+,pipedocs: pipedocs.icn
+,	$(ICONT) -s -u pipedocs.icn
+,xchunks: xchunks.icn
+,	$(ICONT) -s -u xchunks.icn
+,autodefs.tex: texdefs.icn
+,	$(ICONT) -o autodefs.tex -s -u texdefs.icn
+,autodefs.icon: icondefs.icn
+,	$(ICONT) -o autodefs.icon -s -u icondefs.icn
+,autodefs.yacc: yaccdefs.icn
+,	$(ICONT) -o autodefs.yacc -s -u yaccdefs.icn
+,autodefs.sml: smldefs.icn
+,	$(ICONT) -o autodefs.sml -s -u smldefs.icn
+,autodefs.cee: cdefs.icn
+,	$(ICONT) -o autodefs.cee -s -u cdefs.icn
+,autodefs.pascal: pascaldefs.icn
+,	$(ICONT) -o autodefs.pascal -s -u pascaldefs.icn
+,autodefs.promela: promeladefs.icn
+,	$(ICONT) -o autodefs.promela -s -u promeladefs.icn
+,autodefs.lrtl: lrtldefs.icn
+,	$(ICONT) -o autodefs.lrtl -s -u lrtldefs.icn
+,autodefs.asdl: asdldefs.icn
+,	$(ICONT) -o autodefs.asdl -s -u asdldefs.icn
+,autodefs.mmix: mmixdefs.icn
+,	$(ICONT) -o autodefs.mmix -s -u mmixdefs.icn
+@
+
+=install
+,.PHONY: install
+,install: $(NOFAKE_CHUNKS) $(ICON_PROGRAMS)
+# $(PREFIX)/bin
+,	$(INSTALL) -D -m 755 noindex '$(PREFIX)/bin/noindex'
+,	$(INSTALL) -D -m 755 htmltoc '$(PREFIX)/bin/htmltoc'
+,	$(INSTALL) -D -m 755 sl2h '$(PREFIX)/bin/sl2h'
+# $(PREFIX)/lib/noweb
+,	$(INSTALL) -D -m 755 totex '$(PREFIX)/lib/noweb/totex'
+,	$(INSTALL) -D -m 755 tohtml '$(PREFIX)/lib/noweb/tohtml'
+,	$(INSTALL) -D -m 755 noidx '$(PREFIX)/lib/noweb/noidx'
+,	$(INSTALL) -D -m 755 elide '$(PREFIX)/lib/noweb/elide'
+,	$(INSTALL) -D -m 755 l2h '$(PREFIX)/lib/noweb/l2h'
+,	$(INSTALL) -D -m 755 disambiguate '$(PREFIX)/lib/noweb/disambiguate'
+,	$(INSTALL) -D -m 755 docs2comments '$(PREFIX)/lib/noweb/docs2comments'
+,	$(INSTALL) -D -m 755 pdcached '$(PREFIX)/lib/noweb/pdcached'
+,	$(INSTALL) -D -m 755 pipedocs '$(PREFIX)/lib/noweb/pipedocs'
+,	$(INSTALL) -D -m 755 xchunks '$(PREFIX)/lib/noweb/xchunks'
+,	$(INSTALL) -D -m 755 autodefs.tex '$(PREFIX)/lib/noweb/autodefs.tex'
+,	$(INSTALL) -D -m 755 autodefs.icon '$(PREFIX)/lib/noweb/autodefs.icon'
+,	$(INSTALL) -D -m 755 autodefs.yacc '$(PREFIX)/lib/noweb/autodefs.yacc'
+,	$(INSTALL) -D -m 755 autodefs.sml '$(PREFIX)/lib/noweb/autodefs.sml'
+,	$(INSTALL) -D -m 755 autodefs.pascal '$(PREFIX)/lib/noweb/autodefs.pascal'
+,	$(INSTALL) -D -m 755 autodefs.promela '$(PREFIX)/lib/noweb/autodefs.promela'
+,	$(INSTALL) -D -m 755 autodefs.lrtl '$(PREFIX)/lib/noweb/autodefs.lrtl'
+,	$(INSTALL) -D -m 755 autodefs.asdl '$(PREFIX)/lib/noweb/autodefs.asdl'
+,	$(INSTALL) -D -m 755 autodefs.mmix '$(PREFIX)/lib/noweb/autodefs.mmix'
+# $(PREFIX)/lib/noweb/autodefs.c (from autodefs.cee)
+,	$(INSTALL) -D -m 755 autodefs.cee '$(PREFIX)/lib/noweb/autodefs.c'
+@
+
+=update-Makefiles
+,.PHONY: update-Makefiles
+,update-Makefiles:
+,	cd '$(TOP)' && MAKE='$(MAKE)' '$(VPATH_FROM_TOP)/build.sh'
 @
 
 =clean

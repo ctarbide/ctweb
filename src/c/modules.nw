@@ -1,6 +1,5 @@
 % Copyright 1991 by Norman Ramsey.  All rights reserved.
 % See file COPYRIGHT for more information.
-@ 
 \subsection{The internal structure of modules (chunks)}
 This code is so old, it dates back to when I used to call ``chunks'' ``modules.''
 @
@@ -324,3 +323,4 @@ void remove_final_newline (Module mp) {
         p->next = NULL;
     }
 }
+@

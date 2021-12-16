@@ -33,3 +33,13 @@
 /markup
 /nt
 /nwmktemp
+/doc-allcode.tex
+/doc.aux
+/doc.fdb_latexmk
+/doc.fls
+/doc.log
+/doc.out
+/doc.pdf
+/doc.tex
+/doc.toc
+/doc-with-c-lines.tex

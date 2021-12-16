@@ -4,8 +4,21 @@
 ,all: $(NOFAKE_CHUNKS)
 @
 
+=config.nw
+type generated
+,config.nw: Makefile
+,	set -eu; >.tmp.config.nw; \
+,	    printf '<<AWK>>=\n%s\n' '$(AWK)' >>.tmp.config.nw; \
+,	    printf '<<PREFIX>>=\n%s\n' '$(PREFIX)' >>.tmp.config.nw; \
+,	    printf '<<LIBDIR>>=\n%s\n' '<<PREFIX>>/lib/noweb' >>.tmp.config.nw; \
+,	    printf '@\n' >> .tmp.config.nw
+,	$(MV) '.tmp.config.nw' 'config.nw'
+,	$(CHMOD_0444) 'config.nw'
+@
+
 =notangle
 type nofake
+source config.nw
 source notangle.nw
 chunk notangle notangle
 target-option notangle executable 1
@@ -13,6 +26,7 @@ target-option notangle executable 1
 
 =noweave
 type nofake
+source config.nw
 source noweave.nw
 chunk noweave noweave
 target-option noweave executable 1
@@ -20,6 +34,7 @@ target-option noweave executable 1
 
 =noweb
 type nofake
+source config.nw
 source noweb.nw
 chunk noweb noweb
 target-option noweb executable 1
@@ -27,6 +42,7 @@ target-option noweb executable 1
 
 =roff
 type nofake
+source config.nw
 source roff.nw
 chunk noroff noroff
 target-option noroff executable 1
@@ -34,9 +50,26 @@ target-option noroff executable 1
 
 =toroff
 type nofake
+source config.nw
 source toroff.nw
 chunk toroff toroff
 target-option toroff executable 1
+@
+
+=install
+,.PHONY: install
+,install: $(NOFAKE_CHUNKS)
+,	$(INSTALL) -D -m 755 toroff '$(PREFIX)/lib/noweb/toroff'
+,	$(INSTALL) -D -m 755 notangle '$(PREFIX)/bin/notangle'
+,	$(INSTALL) -D -m 755 noweave '$(PREFIX)/bin/noweave'
+,	$(INSTALL) -D -m 755 noweb '$(PREFIX)/bin/noweb'
+,	$(INSTALL) -D -m 755 noroff '$(PREFIX)/bin/noroff'
+@
+
+=update-Makefiles
+,.PHONY: update-Makefiles
+,update-Makefiles:
+,	cd '$(TOP)' && MAKE='$(MAKE)' '$(VPATH_FROM_TOP)/build.sh'
 @
 
 =clean

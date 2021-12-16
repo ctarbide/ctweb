@@ -1,7 +1,58 @@
-% $Id: doc.nw,v 1.21 2008/10/06 01:03:05 nr Exp nr $
+% -*- mode: Noweb; noweb-code-mode: c-mode -*-
+% Copyright 1991 by Norman Ramsey.  All rights reserved.
+% See file COPYRIGHT for more information.
 
+\section{Main {\LaTeX} document}
+
+Why not document this document?
+
+<<debug packages>>=
+% \usepackage{lua-visual-debug}
+@
+
+Thanks to Canageek answer on \href{%
+https://tex.stackexchange.com/questions/823/remove-ugly-borders-around-clickable-cross-references-and-hyperlinks%
+}{question 823} on {\TeX} Stack Exchange this document can have pretty links.
+
+<<use package hyperref and hypersetup>>=
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks   = true, %Colours links instead of ugly boxes
+  urlcolor     = blue, %Colour for external hyperlinks
+  linkcolor    = blue, %Colour of internal links
+  citecolor    = red   %Colour of citations
+}
+@
+
+<<title>>=
+\title{
+    {\tt noweb} Source Code%
+    \thanks{
+        {\tt noweb} is copyright 1989--2000 by Norman Ramsey.
+        Although it is freely available, it is not in the public domain.
+    }
+}
+@
+
+<<author>>=
+\author{
+    Norman Ramsey%
+    \thanks{
+        Section~\ref{preston} is the generous contribution of Preston Briggs
+    }\\
+    {\tt nr@eecs.harvard.edu}
+}
+@
+
+<<*>>=
 \documentclass[twoside]{article}
+<<debug packages>>
+\usepackage[utf8]{inputenc}
+\usepackage[document]{ragged2e}
+<<use package hyperref and hypersetup>>
 \usepackage{noweb,multicol}
+\noweboptions{shift,longxref}
+
 \makeatletter
 \newenvironment{fields}{\@fields}{\crcr\egroup\par\end{quote}}
 \def\@fields{\@ifnextchar[{\@@fields}{\@@fields[4in]}}
@@ -11,27 +62,33 @@
         {\hsize=#1\vtop{\noindent\raggedright\let\\=\cr
                         \strut##\strut\par}}\tabskip=0pt\cr}
 \makeatother
-\pagestyle{noweb}\raggedbottom\noweboptions{shift}
 
-\title{{\tt noweb} Source Code\thanks{{\tt noweb} is copyright 1989--2000 by Norman Ramsey.
-Although it is freely available, it is not in the public domain.}}
-\author{Norman Ramsey\thanks{Section~\ref{preston} is the 
-generous contribution of Preston Briggs}\\{\tt nr@eecs.harvard.edu}}
+\pagestyle{noweb}
+
+\raggedbottom  % do not force the same height for all pages
+
+<<title>>
+<<author>>
+
 \begin{document}
+
 \maketitle
+
 \section*{Preface}
-This isn't a real literate program---there's just enough documentation
-here to get the job done.
-One of my observations is that the cost of creating a high-quality, well-documented 
-literate program adds 1--3 times the amount of effort it took to create the program 
-in the first place.
-Most programs I write aren't worth that kind of effort, and {\tt noweb} is
-no exception.
-Don't expect too much.
+
+This isn't a real literate program---there's just enough documentation here to
+get the job done. One of my observations is that the cost of creating a
+high-quality, well-documented literate program adds 1--3 times the amount of
+effort it took to create the program in the first place. Most programs I write
+aren't worth that kind of effort, and {\tt noweb} is no exception. Don't expect
+too much.
 
 \tableofcontents
 
-\input{allcode.tex}
+\newpage
+% \thispagestyle{empty}
+
+\input{doc-allcode.tex}
 
 \bibliographystyle{plain}
 \bibliography{web}
@@ -45,5 +102,4 @@ Don't expect too much.
 \end{multicols}
 
 \end{document}
-
-
+@

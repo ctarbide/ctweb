@@ -686,6 +686,7 @@ END{
 		print ""
 	}
 
+	top_src_dir = ""
 	tools_prefix = ""
 
 	if (vpath == ".") {
@@ -693,32 +694,39 @@ END{
 		src = vpath
 		if (top == ".") {
 			# toplevel
+			top_src_dir = "."
 			tools_prefix = "./" toolsdirprefix
 		} else {
+			top_src_dir = top
 			tools_prefix = top "/" toolsdirprefix
 		}
+		print "# inside source tree build, VPATH not required"
 	} else if (vpath ~ /\// && subdir) {
 		# absolute vpath
 		src = vpath "/" subdir
 		print "VPATH = " src
+		top_src_dir = vpath
 		tools_prefix = vpath "/" toolsdirprefix
-		print ""
 	} else if (vpath && subdir && top) {
 		# relative vpath
 		if (subdir == "." && top == ".") {
 			# toplevel
 			src = vpath
 			print "VPATH = " src
+			top_src_dir = vpath
 			tools_prefix = vpath "/" toolsdirprefix
 		} else {
 			src = vpath "/" top "/" subdir
 			print "VPATH = " src
+			top_src_dir = vpath "/" top
 			tools_prefix = vpath "/" top "/" toolsdirprefix
 		}
-		print ""
 	} else {
 		show_error("Cannot determine VPATH.")
 	}
+
+	print "VPATH_FROM_TOP = " vpath
+	print ""
 
 	if (nerrors) {
 		print "\nERROR: Exiting with failure due to the presence of errors.\n"
@@ -744,6 +752,7 @@ END{
 
 	vars["SUBDIR"] = "SUBDIR = " subdir
 	vars["TOP"] = "TOP = " top
+	vars["TOP_SRC_DIR"] = "TOP_SRC_DIR = " top_src_dir
 
 	# process all blocks
 	h_len = length_block()
@@ -965,12 +974,15 @@ END{
 			push_current_block_output_deferred("SRC_INCLUDE")
 			push_current_block_output_deferred("SUBDIR")
 			push_current_block_output_deferred("TOP")
+			push_current_block_output_deferred("TOP_SRC_DIR")
 			push_current_block_output_deferred("NOFAKE")
 			push_current_block_output_deferred("INSTALL")
 			push_current_block_output_deferred("C_PROGRAMS")
 			push_current_block_output_deferred("NOFAKE_SOURCES")
 			push_current_block_output_deferred("NOFAKE_CHUNKS")
 			push_current_block_output_deferred("GENERATED_TARGETS")
+		} else if (cur_type == "generated") {
+			mark_as_generated_target(cur_block)
 		} else if (cur_type) {
 			show_error("exhaustion-7: " FILENAME ":" FNR ": type: " cur_type)
 		} else if (!length_block_output(cur_block)) {

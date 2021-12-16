@@ -53,6 +53,8 @@ knowledgeable users can modify document formatting without changing
 the awk program.
 <<toroff>>=
 #!/bin/sh
+LIB='<<LIBDIR>>'
+AWK='<<AWK>>'
 <<process arguments>>
 <<invoke awk program>>
 @ .P
@@ -74,12 +76,12 @@ single quotes and double quotes, so neither can be used to protect the
 other, and quoting each quote is ugly.  The pragmatic solution is to
 copy the awk program into a temporary file, using a shell here-document.
 <<invoke awk program>>=
-export awkfile="$(LIB/nwmktemp)"
+export awkfile="$($LIB/nwmktemp)"
 trap 'rm -f $awkfile' 0 1 2 10 14 15
 cat > $awkfile << 'EOF'
 <<awk program>>
 EOF
-awk -f $awkfile -v tagsfile=$tagsfile delay=$delay noindex=$noindex macrodir=|LIBDIR|
+awk -f $awkfile -v tagsfile=$tagsfile delay=$delay noindex=$noindex macrodir='<<LIBDIR>>'
 @ %def awkfile tagsfile
 .HU "The main program"
 The overall structure of the awk program is simple.  The [[tags]]
@@ -563,7 +565,7 @@ printer.
 # noroff -- run troff using tags file trick
 
 ROFF="psroff -t"        # produce postscript on stdout
-AWK=nawk
+AWK='<<AWK>>'
 
 if [ $# -ne 1 ]; then
   echo "Usage: noroff file" 1>&2

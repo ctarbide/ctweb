@@ -1,23 +1,44 @@
 % -*- mode: Noweb; noweb-code-mode: tex-mode -*-
+
 \documentclass[twoside]{article}
-\usepackage[hypertex]{hyperref}
+
+% https://tex.stackexchange.com/questions/131870/hyperref-package-prevents-shifting-from-ot1-to-t1-encoding
+\usepackage[T1,OT1]{fontenc}
+\DeclareTextSymbolDefault{\dh}{T1}
+\DeclareTextCompositeCommand{\r}{OT1}{a}{{\fontencoding{T1}\selectfont\aa}}
+
+\usepackage[utf8]{inputenc}
+\usepackage[document]{ragged2e}
+
+% \usepackage[hypertex]{hyperref}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, urlcolor=blue, linkcolor=blue, citecolor=red}
+
 \usepackage{url}
+
 \usepackage{noweb}
 \pagestyle{noweb}
 \noweboptions{longchunks,smallcode}
+
 \title{{\TeX} and {\LaTeX} support for {\tt noweb}}
+
 \author{Norman Ramsey}
 \newcommand{\stylehook}{\marginpar{\raggedright\sl Style hook}}
+
 \begin{document}
+
 \maketitle
 \tableofcontents
 @
+
 This document describes the {\TeX} code that supports {\tt noweave}
 and {\tt noweb}.  Those interested in customizing their output should
 focus on Section~\ref{section:sty}.  
+
 Hooks you can easily use (apart from those provided by
 [[\noweboptions]]) are indicated by marginal notes.
 This file contains both plain {\TeX} and {\LaTeX} support:
+
 <<nwmac.tex>>=
 % nwmac.tex -- plain TeX support for noweb
 % DON'T read or edit this file!  Use ...noweb-source/tex/support.nw instead.
@@ -205,9 +226,9 @@ Scheme something like [[\it\tt]] will attempt to use an italic
 typewriter font.  Thus we define new commands like [[\Tt]] which will
 work with both the Plain and old and new \LaTeX{} schemes.  (Note that
 NFSS will be standard in the next version of \LaTeX.)  A problem with
-these definitions arises with NFSS: in math mode the won't work
+these definitions arises with NFSS: in math mode they won't work
 unless the {\tt oldlfont} backwards-compatibility option is in effect.
-For the moment, you can get round this by using [[\mbox]].
+For the moment, you can get around this by using [[\mbox]].
 
 If you wanted code set in a different font, you could re-define
 [[\Tt]].\stylehook{}  [\LaTeX2e actually behaves like OFSS, but the
@@ -1604,13 +1625,13 @@ Johann ``Myrkraverk'' Oskarsson" \verb+<johann@myrkraverk.com>+.
   \def\@nwlangdepcud{This code is used}%
   \def\@nwlangdeprtc{Root chunk (not used in this document)}%
   \def\@nwlangdepcwf{This code is written to file}%
-  \def\@nwlangdepchk{kóða}%
-  \def\@nwlangdepchks{kóðum}%
-  \def\@nwlangdepin{í}%
+  \def\@nwlangdepchk{kÃ³Ã°a}%
+  \def\@nwlangdepchks{kÃ³Ã°um}%
+  \def\@nwlangdepin{Ã­}%
   \def\@nwlangdepand{og}%
   \def\@nwlangdepuss{Notar}%
-  \def\@nwlangdepusd{notað}%
-  \def\@nwlangdepnvu{hvergi notað}%
+  \def\@nwlangdepusd{notaÃ°}%
+  \def\@nwlangdepnvu{hvergi notaÃ°}%
   \def\@nwlangdepdfs{Skilgreinir}%
   \def\@nwlangdepnvd{hvergi skilgreint}%
 }

@@ -45,7 +45,7 @@
 =update-Makefiles
 ,.PHONY: update-Makefiles
 ,update-Makefiles:
-,	cd '$(TOP)' && MAKE='$(MAKE)' ./build.sh
+,	cd '$(TOP)' && MAKE='$(MAKE)' '$(VPATH_FROM_TOP)/build.sh'
 @
 
 =clean

@@ -6,7 +6,6 @@ generated shell script.
 # See file COPYRIGHT for more information.
 <<totex>>=
 #!/bin/sh
-LIB=|LIBDIR|
 <<copyright notice>>
 # Don't try to understand this file!  Look at lib/totex.nw in the noweb source!
 delay=0 noindex=0
@@ -63,11 +62,25 @@ BEGIN		   { code=0 ; quoting=0 ; text=1; <<initialization>> }
                      printf "\n" 
                    }
 /^@defn /          { name = substr($0, 7); <<defn of [[name]], with cross-reference>> }
-/^@use /           { printf "\\LA{}%s%s\\RA{}", 
-                         convquotes(substr($0, 6)), <<optional ref tag>> 
-                   }
-/^@quote$/         { quoting = 1 ; printf "{\\tt{}" }
-/^@endquote$/      { quoting = 0 ; printf "}" }
+
+/^@use / {
+	if (quoting) {
+		printf "@<<%s@>>", TeXliteral(substr($0, 6))
+	} else {
+		printf "\\LA{}%s%s\\RA{}", convquotes(substr($0, 6)), <<optional ref tag>>
+	}
+}
+
+/^@quote$/ {
+	quoting = 1
+	printf "{\\Tt{}"
+}
+
+/^@endquote$/ {
+	quoting = 0
+	printf "\\nwendquote}"
+}
+
 /^@file /          { filename = substr($0, 7); <<clear [[lastxref*]]>>
                      if (!delay) printf "\\nwfilename{%s}", filename 
                    }

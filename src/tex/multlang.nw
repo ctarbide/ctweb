@@ -1,5 +1,7 @@
 % -*- mode: Noweb; noweb-code-mode: tex-mode -*-
 \documentclass[twoside]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[document]{ragged2e}
 \usepackage{noweb}
 \pagestyle{noweb}
 \noweboptions{longchunks,smallcode}

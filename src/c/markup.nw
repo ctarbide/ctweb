@@ -225,3 +225,4 @@ char *find_escaped(register char *s, char *search, char *escape, int mark) {
     if (mark) *s = '\0';
     return s+searchlen;
 }
+@

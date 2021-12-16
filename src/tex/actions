@@ -4,6 +4,10 @@
 ,all: $(NOFAKE_CHUNKS)
 @
 
+=local-vars
+,NOWEAVE = noweave
+@
+
 =multlang
 type nofake
 source multlang.nw
@@ -16,6 +20,34 @@ type nofake
 source support.nw
 chunk nwmac.tex nwmac.tex
 chunk noweb.sty noweb.sty
+@
+
+=support.pdf
+,support.tex: support.nw
+,	$(NOWEAVE) -delay -index -latex support.nw > .tmp.support.tex
+,	$(CHMOD_0444) .tmp.support.tex
+,	$(MV) .tmp.support.tex support.tex
+,support.pdf: support.tex
+#	latexmk -lualatex support.tex
+,	latexmk -pdf support.tex
+@
+
+# install action tested using texlive-2019, should work on recent versions
+# without change
+
+=install
+,.PHONY: install
+,install:
+,	set -eu; texmflocal=`kpsewhich -var-value TEXMFLOCAL`; \
+,	    $(INSTALL) -D -m 444 nwmac.tex "$${texmflocal}/tex/plain/local/nwmac.tex"; \
+,	    $(INSTALL) -D -m 444 noweb.sty "$${texmflocal}/tex/latex/local/noweb.sty"
+,	-texhash || echo "Program texhash not found or failed"
+@
+
+=update-Makefiles
+,.PHONY: update-Makefiles
+,update-Makefiles:
+,	cd '$(TOP)' && MAKE='$(MAKE)' '$(VPATH_FROM_TOP)/build.sh'
 @
 
 =clean

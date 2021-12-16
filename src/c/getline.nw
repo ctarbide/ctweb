@@ -1,8 +1,6 @@
 % Copyright 1991 by Norman Ramsey.  All rights reserved.
 % See file COPYRIGHT for more information.
-@ 
 \section{Utility functions}
-
 \subsection{Line-oriented input}
 [[getline_nw]] is reads in the next line, no matter
 how long it is, expanding tabs.
@@ -92,3 +90,4 @@ if (columnwidth(buf1) > buf_size - 1) {
     while (columnwidth(buf1) > buf_size - 1) buf_size *= 2;
     new_buffers();
 }
+@

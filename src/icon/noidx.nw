@@ -61,10 +61,9 @@ procedure pass1(name, arg)
   case name of {
     "file"  : curfile := uniqueid(arg)
     "begin" : { lastbeginarg := arg; textnonblank := &null }
-    "end"   : if match("docs ", arg) & \anchordist & \textnonblank then 
-                {<<insert and set [[lastanchorlabel]]>>}
-              else 
-                lastanchorlabel := &null
+    "end"   : if match("docs ", arg) & \anchordist & \textnonblank then {
+      <<insert and set [[lastanchorlabel]]>>
+    } else lastanchorlabel := &null
     "text"  : /textnonblank := upto(nonblank, arg)
     "defn"  : {
         insert(allchunks, arg)
@@ -146,48 +145,57 @@ procedure pass2(name, arg)
     }
     "defn" : { thischunk := arg; 
                write("@xref ref " || anchorlabel[arg])
-               <<copy [[name]] and [[arg]] to output>> 
+               <<copy [[name]] and [[arg]] to output>>
                <<write chunk cross-reference>>
              }
 # must postpone index cross-reference to end of chunk because
 # the info is accumulated in [[thesdefns]] and [[theseuses]] on this pass
-    "end" :  { if match("code", arg) then {<<write index cross-reference>>}
-               <<copy [[name]] and [[arg]] to output>> 
-             }
-    "use"  : { write("@xref ref " || (\anchorlabel[arg] | "nw@notdef")) # was "???"
-               <<copy [[name]] and [[arg]] to output>> 
-             }
+    "end" : {
+      if match("code", arg) then {
+        <<write index cross-reference>>
+      }
+      <<copy [[name]] and [[arg]] to output>>
+    }
+    "use" : {
+      write("@xref ref " || (\anchorlabel[arg] | "nw@notdef")) # was "???"
+      <<copy [[name]] and [[arg]] to output>>
+    }
     "index" : {
-       <<shift [[name]] and [[arg]]>>
-       case name of {
-         "defn" | "localdefn" : { 
-                    insert(thesedefns, arg)
-                    # no xref ref because of bug fix
-		  }
-         "use"  : { insert(theseuses, arg)
-                    write("@xref ref ", \indexanchorlabel[arg])
-		  }
-       }
-       name := "index " || name
-       <<copy [[name]] and [[arg]] to output>>
+      <<shift [[name]] and [[arg]]>>
+      case name of {
+        "defn" | "localdefn" : {
+          insert(thesedefns, arg)
+          # no xref ref because of bug fix
+        }
+        "use" : {
+          insert(theseuses, arg)
+          write("@xref ref ", \indexanchorlabel[arg])
+        }
+      }
+      name := "index " || name
+      <<copy [[name]] and [[arg]] to output>>
     }
     "text" : # grotesque hack! for chunks and index in HTML
-       if /thischunk then # docs mode
-         case arg of { 
-       	   "<nowebchunks>" : lognowebchunks()
-           "<nowebindex>"  : lognowebindex()
-           default : <<copy [[name]] and [[arg]] to output>>
-       	 }
-       else <<copy [[name]] and [[arg]] to output>>
-    "fatal" : { <<copy [[name]] and [[arg]] to output>>; exit(1) }
-    "trailer" : { <<write trailers if not already written>>
-                  <<copy [[name]] and [[arg]] to output>>
-                }
+      if /thischunk then # docs mode
+        case arg of {
+          "<nowebchunks>" : lognowebchunks()
+          "<nowebindex>"  : lognowebindex()
+          default : <<copy [[name]] and [[arg]] to output>>
+      }
+      else <<copy [[name]] and [[arg]] to output>>
+    "fatal" : {
+      <<copy [[name]] and [[arg]] to output>>
+      exit(1)
+    }
+    "trailer" : {
+      <<write trailers if not already written>>
+      <<copy [[name]] and [[arg]] to output>>
+    }
     default : <<copy [[name]] and [[arg]] to output>>
   }
   return
 end
-@ 
+@
 The case of the [[@index defn]] is the one case where we don't emit a
 reference, because the reference has to go in earlier.  See
 page~\pageref{multi-def-bug} for an explanation.
@@ -196,7 +204,9 @@ page~\pageref{multi-def-bug} for an explanation.
 defout[thischunk] +:= 1
 write("@xref prevdef ", defanchors[thischunk][defout[thischunk] - 1]) # fail if first
 write("@xref nextdef ", defanchors[thischunk][defout[thischunk] + 1]) # faif if last
-if defout[thischunk] = 1 then {<<write use and def summary for chunk cross-reference>>}
+if defout[thischunk] = 1 then {
+  <<write use and def summary for chunk cross-reference>>
+}
 <<write index cross-reference>>=
 theseuses --:= thesedefns
 if *thesedefns > 0 then {

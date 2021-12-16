@@ -207,8 +207,8 @@ if (c == ESC && *t == ESC) { *s++ = ESC; c = *++t; ++t; }
 To convert documentation lines, we have to track the quoting brackets.
 Within quoting brackets, we use the same engine as for within code lines
 (except for our treatment of square brackets).
-We have the state machine from hell.  We can have ordinary text, quoted text in 
-[[[[...]]]], or a use in [[[[<<...>>]]]].  
+We have the state machine from hell.  We can have ordinary text, quoted text in
+[[[[...]]]], or a use in [[[[<<...>>]]]].
 Ordinary text and quoted text can span lines, but uses can't.
 So, the four main states of our lexer are:
 \begin{quote}
@@ -220,11 +220,11 @@ So, the four main states of our lexer are:
 \end{tabular}
 \end{quote}
 That last state covers the case where we have [[[[<<...[[...]]...>>]]]].
-BTW, it's no coincidence that if we've just consumed a newline (i.e., we're at the 
+BTW, it's no coincidence that if we've just consumed a newline (i.e., we're at the
 start of a line), we must be in one of those four states.
 Moreover, since a newline in states [[u]] and [[uc]] means it's not really a use%
-\footnote{Because uses may not span lines.}, 
-those states fall back to state [[c]] (while prepending the opening [[<<]] that 
+\footnote{Because uses may not span lines.},
+those states fall back to state [[c]] (while prepending the opening [[<<]] that
 appeared to signal a use).
 So [[c]] and  [[t]] are the major states.  When scanning documentation,
 they correspond to [[quoting]] and [[!quoting]].
@@ -586,3 +586,4 @@ else if (argv[i][2]==0)
     tabsize = 0;                /* no tabs */
 else 
     errormsg(Error, "%s: ill-formed option %s", progname, argv[i]);
+@

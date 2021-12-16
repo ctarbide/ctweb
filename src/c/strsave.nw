@@ -1,5 +1,6 @@
 % Copyright 1991 by Norman Ramsey.  All rights reserved.
 % See file COPYRIGHT for more information.
+\section{String functions}
 <<header>>=
 char *strsave (char *s);        /* returns a pointer to a fresh copy of s */
 <<*>>=
@@ -19,3 +20,4 @@ char *strsave (char *s) {
     (void)rcsname; /* avoid a warning */
     return t;
 }
+@
