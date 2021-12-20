@@ -18,7 +18,7 @@ markup=$LIB/markup mntopt=-L status=0 tex=1 output=1
 if [ $# -eq 0 ]; then <<complain of no args and exit>>; fi
 
 for source do
-  if [ -n "$output" ]; then 
+  if [ -n "$output" ]; then
     PATH="$PATH:$LIB" $markup -t "$source" | $LIB/mnt -t8 "$mntopt" -all || status=1
   fi
   if [ -n "$tex" ]; then
@@ -45,7 +45,7 @@ sed -e '/^@[ud][se][ef][ n]/s/[ 	][ 	]*/ /g' \
     -e '/^@[ud][se][ef][ n]/s/ $//'
 <<disambiguate uses and defns ending in three dots>>=
 $LIB/disambiguate
-@ 
+@
 When writing {\TeX} output, I call [[$markup]] a second time to expand tabs.
 %% timings on nuweb
 % markup 0.4u 0.1s
@@ -54,7 +54,7 @@ When writing {\TeX} output, I call [[$markup]] a second time to expand tabs.
 <<write {\TeX} output>>=
 texname=`echo "$source" | sed '/\./s/\.[^.]*$//'`
 texname="$texname.tex"
-PATH="$PATH:$LIB" $markup "$source" | $LIB/finduses -noquote | $LIB/noidx -delay | 
+PATH="$PATH:$LIB" $markup "$source" | $LIB/finduses -noquote | $LIB/noidx -delay |
 $AWK '{print}
 /^@defn [^ ]*$/ { print "@literal \\let\\nwnotused=\\nwoutput{}" }' |
 $LIB/totex -delay | cpif $texname

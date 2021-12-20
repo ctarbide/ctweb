@@ -22,7 +22,7 @@ improved the flexibility of the noroff script,
 and added extra explanation about the gory troff details.
 .P
 The high-level view of toroff is that it comes in two parts.
-The first part is an ordinary back end, which produces 
+The first part is an ordinary back end, which produces
 troff augmented with special comments, using the [[.tm]] macro.
 The second part, [[noroff]], runs troff, with all of its
 pre-processors and post-processors.
@@ -33,8 +33,8 @@ cross-referencing information gathered on the previous formatting run.
 The trick that makes the whole thing work is that the
 troff markup added by toroff causes cross-referencing
 information to be written to standard error during the formatting run;
-the [[noroff]] script cleverly gathers this material into 
-the [[tags]] file, 
+the [[noroff]] script cleverly gathers this material into
+the [[tags]] file,
 which can be used as input to the next
 formatting run.
 As with LaTeX,  the cross-referencing information is always one
@@ -483,7 +483,7 @@ The macros [[.ADDLIST s]], which adds string [[s]] to a queued list
 waiting to be printed, and [[.PRINTLIST]], which prints the list,
 appropriately formatted with commas, are described below.  These macros
 make use of some interesting troff idioms.  [[LIST]] is an array of
-strings; the [[n]]-th string in [[LIST]] can be set to [[s]] by 
+strings; the [[n]]-th string in [[LIST]] can be set to [[s]] by
 [[.ds LISTn s]].  The expression [[.nr n \\$1]] converts the string
 passed as the first argument to a macro to the number [[n]].  Loops
 are implemented in troff as recursive macros, as in [[.PRINTITEM]].
@@ -579,7 +579,7 @@ file via command-line redirection.  The code below uses an awk idiom; the
         for (i = 1; i <= split(entrydefn, entryarray); i++)
             sub(entryarray[i], "\\*[BEGINDEFN]&\\*[ENDDEFN]", entryuse)
         printf ".IITEM \"%s\" \"%s\"\n", name, entryuse }
-    else if (sub(/^###ENDINDEX###/   , "")) printf ".ILISTEND\n..\n" 
+    else if (sub(/^###ENDINDEX###/   , "")) printf ".ILISTEND\n..\n"
 }
 @ %def tags chunkuse chunkdefn entryuse entrydefn entryarray
 .P
@@ -608,11 +608,11 @@ replaced with [[".nwt"]] (see the toroff script, below).
     while (getline <tagsfile > 0) <<action for [[tags]] line>>
   }
 }
-@ 
+@
 .HU "Using \\f[CW]toroff\fP"
 Toroff is one element of the normal noweave pipeline.  Using
 toroff in its full generality is hard.  The sample program shown
-below 
+below
 allows the user to specify the macro package (although it defaults to
 [[-mgm]]),
 and allows the user to specify troff pre-processors,
@@ -665,7 +665,7 @@ fi
 base="`basename $1 | sed '/\./s/\.[^.]*$//'`"
 tagsfile="$base.nwt"
 (echo ".so $macrodir/tmac.w"
-if [ -r "$tagsfile" ]; then 
+if [ -r "$tagsfile" ]; then
    tagstemp=$($LIB/nwmktemp) || { echo "$0: Cannot create temporary file" >&2; exit 1;  }
    cp $tagsfile $tagstemp
    $AWK '<<action for [[tags]] line>>
