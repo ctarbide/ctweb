@@ -1,5 +1,7 @@
 
 =all
+,NOFAKE_OR_NOTANGLE = $(NOFAKE)
+#NOFAKE_OR_NOTANGLE = notangle
 ,.PHONY: all
 ,all: $(C_PROGRAMS)
 @
@@ -7,12 +9,19 @@
 =nofake
 ,# note: this target is not built automatically since it is
 ,#       critical to the bootstrapping process
-,NOFAKE_OR_NOTANGLE = $(NOFAKE)
-#NOFAKE_OR_NOTANGLE = notangle
 ,nofake: nofake.nw
 ,	$(NOFAKE_OR_NOTANGLE) -Rnofake nofake.nw > .tmp.nofake
 ,	$(MV) .tmp.nofake nofake
 ,	$(CHMOD_0555) nofake
+@
+
+=nofake.sh
+,# note: this target is not built automatically since it is
+,#       critical to the bootstrapping process
+,nofake.sh: nofake.nw
+,	$(NOFAKE_OR_NOTANGLE) -Rnofake.sh nofake.nw > .tmp.nofake.sh
+,	$(MV) .tmp.nofake.sh nofake.sh
+,	$(CHMOD_0555) nofake.sh
 @
 
 =gen-Makefile.awk

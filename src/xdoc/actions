@@ -7,13 +7,14 @@
 =config.nw
 type generated
 ,config.nw: Makefile
-,	set -eu; >.tmp.config.nw; \
+,	@$(ECHO) "Generate config.nw"
+,	@set -eu; >.tmp.config.nw; \
 ,	    printf '<<AWK>>=\n%s\n' '$(AWK)' >>.tmp.config.nw; \
 ,	    printf '<<PREFIX>>=\n%s\n' '$(PREFIX)' >>.tmp.config.nw; \
 ,	    printf '<<LIBDIR>>=\n%s\n' '<<PREFIX>>/lib/noweb' >>.tmp.config.nw; \
 ,	    printf '@\n' >> .tmp.config.nw
-,	$(MV) '.tmp.config.nw' 'config.nw'
-,	$(CHMOD_0444) 'config.nw'
+,	@$(MV) '.tmp.config.nw' 'config.nw'
+,	@$(CHMOD_0444) 'config.nw'
 @
 
 =htmltoc
@@ -30,7 +31,7 @@ source config.nw
 source docdate.nw
 source noweb.nw
 source manpage.nw
-chunk noweb.1 noweb.1
+chunk noweb.1
 @
 
 =notangle
@@ -40,7 +41,7 @@ source docdate.nw
 source notangle.nw
 source manpage.nw
 source ../shell/noweave.nw
-chunk notangle.1 notangle.1
+chunk notangle.1
 @
 
 =nodefs

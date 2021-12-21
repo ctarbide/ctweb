@@ -7,13 +7,14 @@
 =config.nw
 type generated
 ,config.nw: Makefile
-,	set -eu; >.tmp.config.nw; \
+,	@$(ECHO) "Generate config.nw"
+,	@set -eu; >.tmp.config.nw; \
 ,	    printf '<<AWK>>=\n%s\n' '$(AWK)' >>.tmp.config.nw; \
 ,	    printf '<<PREFIX>>=\n%s\n' '$(PREFIX)' >>.tmp.config.nw; \
 ,	    printf '<<LIBDIR>>=\n%s\n' '<<PREFIX>>/lib/noweb' >>.tmp.config.nw; \
 ,	    printf '@\n' >> .tmp.config.nw
-,	$(MV) '.tmp.config.nw' 'config.nw'
-,	$(CHMOD_0444) 'config.nw'
+,	@$(MV) '.tmp.config.nw' 'config.nw'
+,	@$(CHMOD_0444) 'config.nw'
 @
 
 =notangle

@@ -28,6 +28,4 @@
 
 =extra-vars
 type internal-vars
-,
-,AWK=$(BUILD_AWK)
 @

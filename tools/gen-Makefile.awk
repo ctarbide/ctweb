@@ -736,6 +736,7 @@ END{
 	vars["OBJEXT"] = "OBJEXT = " objext
 	vars["EXESUFFIX"] = "EXESUFFIX = " exesuffix
 	vars["NOFAKE"] = "NOFAKE = " tools_prefix "nofake"
+	vars["NOFAKE_SH"] = "NOFAKE_SH = " tools_prefix "nofake.sh"
 	vars["INSTALL"] = "INSTALL = " tools_prefix "install.sh"
 
 	vars["C_PROGRAMS"] = prefix_c_programs("C_PROGRAMS =")
@@ -825,30 +826,9 @@ END{
 					} else {
 						chmod = "$(CHMOD_0444)"
 					}
-					push_current_block_output("\t@set -eu; \\")
-					push_current_block_output("\t    if ! test '(' -e '" target ".stamp' -a -e '" target "' \\")
-					k_len = length_gl0()
-					for (k=0; k<k_len; k++) {
-						source = get_gl0(k)
-						push_current_block_output( \
-								  "\t                  -a '" target ".stamp' -nt " source " \\")
-					}
-					push_current_block_output("\t            ')'; then \\")
-					push_current_block_output("\t        set -x; \\")
-					push_current_block_output(prefix_gl0( \
-								  "\t        $(NOFAKE) -R'" name "' $(NOFAKEFLAGS)", \
-								  "\t            ") " \\")
-					push_current_block_output("\t            >'.tmp." target "'; \\")
-					push_current_block_output("\t        if ! $(CMP) '.tmp." target "' '" target "'; then \\")
-					push_current_block_output("\t            $(MV) '.tmp." target "' '" target "'; \\")
-					push_current_block_output("\t            " chmod " '" target "'; \\")
-					push_current_block_output("\t        else \\")
-					push_current_block_output("\t            $(RM) '.tmp." target "'; \\")
-					push_current_block_output("\t        fi; \\")
-					push_current_block_output("\t        $(TOUCH) '" target ".stamp'; \\")
-					push_current_block_output("\t    else \\")
-					push_current_block_output("\t        $(ECHO) 'Target \"" target "\" is up to date.'; \\")
-					push_current_block_output("\t    fi")
+					push_current_block_output( prefix_gl0( \
+						"\t@CHMOD='" chmod "' $(NOFAKE_SH) -R'" name "' $(NOFAKEFLAGS)", \
+						"\t    ") " -o '" target "'")
 				}
 			} else {
 				show_error("There are no sources defined to generate the targets.")
@@ -916,30 +896,9 @@ END{
 						} else {
 							chmod = "$(CHMOD_0444)"
 						}
-						push_current_block_output("\t@set -eu; \\")
-						push_current_block_output("\t    if ! test '(' -e '" target ".stamp' -a -e '" target "' \\")
-						k_len = length_gl0()
-						for (k=0; k<k_len; k++) {
-							source = get_gl0(k)
-							push_current_block_output( \
-									  "\t                  -a '" target ".stamp' -nt " source " \\")
-						}
-						push_current_block_output("\t            ')'; then \\")
-						push_current_block_output("\t        set -x; \\")
-						push_current_block_output(prefix_gl0( \
-									  "\t        $(NOFAKE) -R'" name "' $(NOFAKEFLAGS)", \
-									  "\t            ") " \\")
-						push_current_block_output("\t            >'.tmp." target "'; \\")
-						push_current_block_output("\t        if ! $(CMP) '.tmp." target "' '" target "'; then \\")
-						push_current_block_output("\t            $(MV) '.tmp." target "' '" target "'; \\")
-						push_current_block_output("\t            " chmod " '" target "'; \\")
-						push_current_block_output("\t        else \\")
-						push_current_block_output("\t            $(RM) '.tmp." target "'; \\")
-						push_current_block_output("\t        fi; \\")
-						push_current_block_output("\t        $(TOUCH) '" target ".stamp'; \\")
-						push_current_block_output("\t    else \\")
-						push_current_block_output("\t        $(ECHO) 'Target \"" target "\" is up to date.'; \\")
-						push_current_block_output("\t    fi")
+						push_current_block_output( prefix_gl0( \
+							"\t@CHMOD='" chmod "' $(NOFAKE_SH) -R'" name "' $(NOFAKEFLAGS)", \
+							"\t    ") " -o '" target "'")
 					}
 				} else {
 					show_error("The target and the source are the same: \"" target "\".")
@@ -966,7 +925,7 @@ END{
 				show_error("c-object \"" cur_block "\" has no source")
 			}
 		} else if (cur_type == "internal-vars") {
-			push_current_block_output(set_var_from_env_template("BUILD_AWK", "nawk"))
+			push_current_block_output(set_var_from_env_template("AWK", "nawk"))
 			push_current_block_output(set_var_from_env_template("BUILD_MAKEFILE", "Makefile"))
 			push_current_block_output_deferred("OBJEXT")
 			push_current_block_output_deferred("EXESUFFIX")
@@ -976,6 +935,7 @@ END{
 			push_current_block_output_deferred("TOP")
 			push_current_block_output_deferred("TOP_SRC_DIR")
 			push_current_block_output_deferred("NOFAKE")
+			push_current_block_output_deferred("NOFAKE_SH")
 			push_current_block_output_deferred("INSTALL")
 			push_current_block_output_deferred("C_PROGRAMS")
 			push_current_block_output_deferred("NOFAKE_SOURCES")
