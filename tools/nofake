@@ -67,9 +67,15 @@ sub set_many (\%@) {
 }
 sub get_many {
     # () yield undef in scalar context
-    return () unless defined($_[0]);              # return () instead of (undef)
-    return @{ $_[0] } if ref($_[0]) eq 'ARRAY';   # return @{arg}
-    @_;                                           # return (arg)
+
+    # return () instead of (undef)
+    return () unless defined($_[0]);
+
+    # return @{arg}
+    return @{ $_[0] } if ref($_[0]) eq 'ARRAY';
+
+    # return (arg)
+    @_;
 }
 sub line_directive {
     my ($fname, $line) = @_;
@@ -100,7 +106,8 @@ sub read_file {
             }
         } else {
             if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
-                Carp::carp("WARNING: Unescaped << in documentation chunk at line ${ARGV}:${.}.");
+                Carp::carp("WARNING: Unescaped << in documentation" .
+                    " chunk at line ${ARGV}:${.}.");
             }
         }
     }
@@ -109,7 +116,8 @@ my %being_extracted = ();
 sub extract {
     my ($prefix, $parent_fname, $parent_lnum, $chunk) = @_;
     if ($being_extracted{$chunk}) {
-        Carp::croak("ERROR: Code chunk <<$chunk>> is used in its own definition (at ${parent_fname}:${parent_lnum}).");
+        Carp::croak("ERROR: Code chunk <<$chunk>> is used in its" .
+            " own definition (at ${parent_fname}:${parent_lnum}).");
     }
     $being_extracted{$chunk}++;
     $chunks_options{$chunk}->{nextractions}++;
@@ -132,7 +140,8 @@ sub extract {
                 my $after = $3;
                 if ($chunks_options{$chunkref}) {
                     my $line_new = undef;
-                    my @chunkreflines = extract($prefix . $before, $fname, $lnum, $chunkref);
+                    my @chunkreflines = extract($prefix . $before, $fname,
+                        $lnum, $chunkref);
                     while (@chunkreflines and ref($chunkreflines[0])) {
                         # propagate special items early, before processing lines
                         push(@res, shift(@chunkreflines));
@@ -187,14 +196,16 @@ sub extract {
                             }
                         }
                     } else {
-                        Carp::carp("WARNING: Code chunk <<${chunkref}>> is empty (at ${fname}:${lnum}).");
+                        Carp::carp("WARNING: Code chunk <<${chunkref}>> is" .
+                            " empty (at ${fname}:${lnum}).");
                     }
                     if (defined($line_new)) {
                         $line = $line_new;
                         next;
                     }
                 } else {
-                    Carp::carp("WARNING: Code chunk <<${chunkref}>> does not exist (at ${fname}:${lnum}).");
+                    Carp::carp("WARNING: Code chunk <<${chunkref}>>" .
+                        " does not exist (at ${fname}:${lnum}).");
                 }
                 $lnum = -1; # force line number directive
             } else {
@@ -228,7 +239,10 @@ my $list_all = 0;
 my $no_op = 0;
 
 while ($_ = shift(@ARGV)) {
-    if (/^\-L(.*)/)             { $sync = 1; if ($1 ne '') { $lineformat = $1 }}
+    if (/^\-L(.*)/) {
+        $sync = 1;
+        $lineformat = $1 if $1;
+    }
     elsif (/^\-R(.+)/)          { push(@chunks, $1) }
     elsif (/^\-(v|-version)$/)  { version(); exit(0) }
     elsif (/^\--list-all$/)     { $list_all = 1 }
@@ -271,7 +285,8 @@ if ($no_op) {
 } else {
     for my $chunk (@chunks) {
         if (!$chunks_options{$chunk}) {
-            Carp::croak("ERROR: The root chunk <<${chunk}>> was not defined.");
+            Carp::croak("ERROR: The root chunk <<${chunk}>> was" .
+                " not defined.");
         }
     }
     for my $chunk (@chunks) {
@@ -291,7 +306,7 @@ __END__
 
 =head1 NAME
 
-nofake - simple notangle replacement for the Noweb literate programming tool
+nofake - notangle replacement for the noweb literate programming tool
 
 =head1 SYNOPSIS
 

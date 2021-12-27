@@ -53,19 +53,19 @@ Forgiving systems allow the awk program to be specified as a parameter to the
 awk interpreter; ugly systems require that it be placed in a temporary file.
 The chunks below implement both options.
 <<invoke first pass using parameter>>=
-nawk '<<first pass>>'
+<<AWK>> '<<first pass>>'
 <<invoke second pass using parameter>>=
-nawk '<<second pass>>' noindex=$noindex $textfile
+<<AWK>> '<<second pass>>' noindex=$noindex $textfile
 <<invoke first pass using file>>=
 cat > $awkfile << 'EOF'
 <<first pass>>
 EOF
-nawk -f $awkfile
+<<AWK>> -f $awkfile
 <<invoke second pass using file>>=
 cat > $awkfile << 'EOF'
 <<second pass>>
 EOF
-nawk -f $awkfile noindex=$noindex $textfile
+<<AWK>> -f $awkfile noindex=$noindex $textfile
 @
 The first pass is responsible for extracting [[label]]s and assigning them
 section numbers, which are used for cross-referencing in the second pass.  The
@@ -101,8 +101,8 @@ BEGIN {
 }
 <<process [[noweb]] commands>>
 /^@fatal / { exit 1 }
-END   { 
-        close(out) 
+END   {
+        close(out)
 }
 <<functions>>
 @ %def tag
@@ -121,7 +121,7 @@ command appears.
 /^@begin code/ { out = cfmt; code = 1; ++secno }
 /^@end code/   { endcode(); close(out); printf "\n" }
 /^@text/       { printf "%s", substr($0, 7) | out }
-/^@nl/         { # printf "(->%s)", formatname(out) | out ; 
+/^@nl/         { # printf "(->%s)", formatname(out) | out ;
                  printf "\n" | out }
 @ %def out secno code
 <<functions>>=

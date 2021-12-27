@@ -1,0 +1,41 @@
+
+<<nwmtime>>=
+#!/usr/bin/env perl
+#
+# nwmtime -- emit defn of modification time of first file
+#
+
+eval 'exec perl -wS $0 ${1+"$@"}'
+    if 0;
+
+use 5.008; # perl v5.8.0 was released on July 18, 2002
+use strict;
+use warnings FATAL => qw{uninitialized void inplace};
+use Carp ();
+$SIG{__DIE__} = \&Carp::confess;
+
+my $mtime_file = undef;
+
+while(<>) {
+  print;
+  if (not (defined $mtime_file) and /\@file\s*(\S+)/) {
+    $mtime_file = $1;
+  }
+}
+
+if (defined $mtime_file) {
+  my $filename = $mtime_file;
+  my $mtime;
+
+  #        localtime if you really want local time...
+  $mtime = gmtime((stat $filename)[9]);
+  print <<EOF;
+\@begin code 000
+\@defn modification time of first \@file
+\@nl
+\@text $mtime
+\@nl
+\@end code 000
+EOF
+}
+@

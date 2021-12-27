@@ -24,6 +24,23 @@
 ,	$(CHMOD_0555) nofake.sh
 @
 
+=nofake.1
+,nofake.1: nofake
+,	pod2man nofake > .tmp.nofake.1
+,	$(MV) .tmp.nofake.1 nofake.1
+,	$(CHMOD_0444) nofake.1
+,	@$(ECHO) 'Validate with: nroff -man nofake.1 | more'
+@
+
+=nofake.pdf
+,nofake.tex: nofake.nw
+,	noweave -delay -index -latex nofake.nw > .tmp.nofake.tex
+,	$(CHMOD_0444) .tmp.nofake.tex
+,	$(MV) .tmp.nofake.tex nofake.tex
+,nofake.pdf: nofake.tex nofake.tex
+,	latexmk -pdf nofake
+@
+
 =gen-Makefile.awk
 ,# note: this target is not built automatically since it is
 ,#       critical to the bootstrapping process
@@ -40,15 +57,6 @@
 ,	    > .tmp.gen-Makefile.awk
 ,	$(MV) .tmp.gen-Makefile.awk gen-Makefile.awk
 ,	$(CHMOD_0444) gen-Makefile.awk
-@
-
-=nofake.pdf
-,nofake.tex: nofake.nw
-,	noweave -delay -index -latex nofake.nw > .tmp.nofake.tex
-,	$(CHMOD_0444) .tmp.nofake.tex
-,	$(MV) .tmp.nofake.tex nofake.tex
-,nofake.pdf: nofake.tex nofake.tex
-,	latexmk -pdf nofake
 @
 
 =update-Makefiles

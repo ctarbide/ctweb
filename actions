@@ -1,22 +1,18 @@
 
 =all
-,.PHONY: all
+,.PHONY: \
+, all all-src
 ,all: all-src
-@
 
-=install
-,.PHONY: install
-,install: install-src
-@
-
-=all-src
-,.PHONY: all-src
 ,all-src:
 ,	$(MAKE) -C src all
 @
 
-=install-src
-,.PHONY: install-src
+=install
+,.PHONY: \
+,install  install-src
+,install: install-src
+
 ,install-src:
 ,	$(MAKE) -C src install
 @

@@ -49,6 +49,13 @@ chunk noroff noroff
 target-option noroff executable 1
 @
 
+=tmac.w
+type nofake
+source config.nw
+source roff.nw
+chunk tmac.w
+@
+
 =toroff
 type nofake
 source config.nw
@@ -61,6 +68,7 @@ target-option toroff executable 1
 ,.PHONY: install
 ,install: $(NOFAKE_CHUNKS)
 ,	$(INSTALL) -D -m 755 toroff '$(PREFIX)/lib/noweb/toroff'
+,	$(INSTALL) -D -m 644 tmac.w '$(PREFIX)/lib/noweb/tmac.w'
 ,	$(INSTALL) -D -m 755 notangle '$(PREFIX)/bin/notangle'
 ,	$(INSTALL) -D -m 755 noweave '$(PREFIX)/bin/noweave'
 ,	$(INSTALL) -D -m 755 noweb '$(PREFIX)/bin/noweb'

@@ -61,7 +61,7 @@ not get lost when the script is passed around. For the syntax, see the
 <<manual page in POD format>>=
 =head1 NAME
 
-nofake - simple notangle replacement for the Noweb literate programming tool
+nofake - notangle replacement for the noweb literate programming tool
 
 =head1 SYNOPSIS
 
@@ -309,6 +309,11 @@ or newline.
 
 A [[@@]] at the first column must yield a [[@]].
 
+<<warn unescaped [[<<]] in documentation chunk>>=
+Carp::carp("WARNING: Unescaped @<< in documentation" .
+    " chunk at line ${ARGV}:${.}.");
+@
+
 <<read line vars>>=
 my $chunk = '';
 <<read line>>=
@@ -328,7 +333,7 @@ if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
     }
 } else {
     if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
-        Carp::carp("WARNING: Unescaped @<< in documentation chunk at line ${ARGV}:${.}.");
+        <<warn unescaped [[<<]] in documentation chunk>>
     }
 }
 @
@@ -377,11 +382,17 @@ while (@chunkreflines and ref($chunkreflines[0])) {
 }
 @
 
+<<warn empty code chunk>>=
+Carp::carp("WARNING: Code chunk @<<${chunkref}@>> is" .
+    " empty (at ${fname}:${lnum}).");
+@
+
 Defining \$line\_new will effectively replace the current line and search for
 more references.  This allows more than one chunk reference per line.
 
 <<extract and process chunk reference>>=
-my @chunkreflines = extract($prefix . $before, $fname, $lnum, $chunkref);
+my @chunkreflines = extract($prefix . $before, $fname,
+    $lnum, $chunkref);
 <<propagate header special items>>
 if (@chunkreflines > 1) {
     # many lines
@@ -427,8 +438,13 @@ if (@chunkreflines > 1) {
         }
     }
 } else {
-    Carp::carp("WARNING: Code chunk @<<${chunkref}@>> is empty (at ${fname}:${lnum}).");
+    <<warn empty code chunk>>
 }
+@
+
+<<warn chunk does not exit>>=
+Carp::carp("WARNING: Code chunk @<<${chunkref}@>>" .
+    " does not exist (at ${fname}:${lnum}).");
 @
 
 <<process line>>=
@@ -447,7 +463,7 @@ for (;;) {
                 next;
             }
         } else {
-            Carp::carp("WARNING: Code chunk @<<${chunkref}@>> does not exist (at ${fname}:${lnum}).");
+            <<warn chunk does not exit>>
         }
         $lnum = -1; # force line number directive
     } else {
@@ -473,12 +489,17 @@ Special item [[0]] is a line number directive.
 push(@res, [0, $fname, $lnum]);
 @
 
+<<error recursive chunk definition>>=
+Carp::croak("ERROR: Code chunk @<<$chunk@>> is used in its" .
+    " own definition (at ${parent_fname}:${parent_lnum}).");
+@
+
 <<sub extract>>=
 my %being_extracted = ();
 sub extract {
     my ($prefix, $parent_fname, $parent_lnum, $chunk) = @_;
     if ($being_extracted{$chunk}) {
-        Carp::croak("ERROR: Code chunk @<<$chunk@>> is used in its own definition (at ${parent_fname}:${parent_lnum}).");
+        <<error recursive chunk definition>>
     }
     $being_extracted{$chunk}++;
     $chunks_options{$chunk}->{nextractions}++;
@@ -524,7 +545,10 @@ my $list_all = 0;
 my $no_op = 0;
 
 while ($_ = shift(@ARGV)) {
-    if (/^\-L(.*)/)             { $sync = 1; if ($1 ne '') { $lineformat = $1 }}
+    if (/^\-L(.*)/) {
+        $sync = 1;
+        $lineformat = $1 if $1;
+    }
     elsif (/^\-R(.+)/)          { push(@chunks, $1) }
     elsif (/^\-(v|-version)$/)  { version(); exit(0) }
     elsif (/^\--list-all$/)     { $list_all = 1 }
@@ -570,7 +594,8 @@ for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
 
 <<verify \$chunk is defined>>=
 if (!$chunks_options{$chunk}) {
-    Carp::croak("ERROR: The root chunk @<<${chunk}@>> was not defined.");
+    Carp::croak("ERROR: The root chunk @<<${chunk}@>> was" .
+        " not defined.");
 }
 @
 
@@ -619,9 +644,15 @@ sub set_many (\%@) {
 }
 sub get_many {
     # () yield undef in scalar context
-    return () unless defined($_[0]);              # return () instead of (undef)
-    return @{ $_[0] } if ref($_[0]) eq 'ARRAY';   # return @{arg}
-    @_;                                           # return (arg)
+
+    # return () instead of (undef)
+    return () unless defined($_[0]);
+
+    # return @{arg}
+    return @{ $_[0] } if ref($_[0]) eq 'ARRAY';
+
+    # return (arg)
+    @_;
 }
 @
 
@@ -732,8 +763,8 @@ an output file.  The main goal is to integrate nicely with makefiles.
 set -eu
 
 if [ x"${ZSH_VERSION:-}" != x ]; then
-    # let zsh behave like dash, bash and others shells when expanding
-    # parameters
+    # let zsh behave like dash, bash and others shells when
+    # expanding parameters
     setopt sh_word_split
 fi
 

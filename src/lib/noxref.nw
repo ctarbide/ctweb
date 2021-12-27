@@ -8,7 +8,7 @@ and [[noxref.awk]] for the MS-DOS environment.
 
 <<*>>=
 #!/bin/sh
-nawk '<<cross-reference awk program>>'
+<<AWK>> '<<cross-reference awk program>>'
 <<noxref.awk>>=
 <<cross-reference awk program>>
 <<noxref.bat>>=
@@ -48,7 +48,7 @@ and uses.
 The second pass writes out all the lines with suitable
 cross-referencing markup.
 The first pass saves information in the following tables, which are
-indexed by chunk name. 
+indexed by chunk name.
 \begin{itemize}
 \item[\tt defns]  Lists labels of all defining instances.
 \item[\tt firstdef] Label of the first defining instance.
@@ -120,12 +120,12 @@ for (i=0; i < nextline; i++) {
   }
   delete lines[i]
 }
-@ 
+@
 \maybreak{1in}
 <<emit definition>>=
 printf "@defn %s~{\\footnotesize\\Rm\\subpageref{%s}}\n", arg, firstdef[arg]
 <<emit use>>=
-if (firstdef[arg] != "") 
+if (firstdef[arg] != "")
   printf "@use %s~{\\footnotesize\\Rm\\subpageref{%s}}\n", arg, firstdef[arg]
 else
   printf "@use %s~{\\footnotesize\\Rm (never defined)}\n", arg
@@ -140,24 +140,24 @@ if (firstdefnout[thischunk] == 0) {
   n = split(defns[thischunk], a)
   if (n > 1) {
     printf "@literal \\nwalsodefined{"
-    for (j = 2; j <= n; j++) 
+    for (j = 2; j <= n; j++)
       printf "\\\\{%s}", a[j]
     printf "}\n"
   }
   if (uses[thischunk] != "") {
     printf "@literal \\nwused{"
     n = split(uses[thischunk], a)
-    for (j = 1; j <= n; j++) 
+    for (j = 1; j <= n; j++)
       printf "\\\\{%s}", a[j]
     printf "}\n"
-  } else 
+  } else
       printf "@literal \\nwnotused{%s}\n", escapeTeXspecials(thischunk)
 }
 @ \subsection{Sorting}
 Each chunk name is mapped to a sorting key.
 Ideally such a key would contain only lower-case letters and spaces,
 and it would discount \TeX{} control sequences, and more.
-Such computations are so excruciating in awk that I content myself 
+Such computations are so excruciating in awk that I content myself
 with eliminating nonletters.
 <<function definitions>>=
 function sortkey(name, s) {
@@ -165,7 +165,7 @@ function sortkey(name, s) {
   gsub(/[^a-zA-Z ]/, "", s)
   return s
 }
-@ I maintain a two parallel lists, one containing sort keys and the other 
+@ I maintain a two parallel lists, one containing sort keys and the other
 containing chunk names.
 <<function definitions>>=
 function insertchunk(name, i, tmp) {
@@ -187,7 +187,7 @@ if (sortcount == 0) {
   <<insert all chunk names into [[sortnames]]>>
 }
 for (j = 1; j <= sortcount; j++) {
-  if (firstdef[sortnames[j]] != "") 
+  if (firstdef[sortnames[j]] != "")
     print "@use " sortnames[j] "~{\\footnotesize\\Rm\\subpageref{" firstdef[sortnames[j]] "}}"
   else
     print "@use " sortnames[j] "~{\\footnotesize\\Rm (never defined)}"

@@ -4,8 +4,70 @@
 ,all: $(NOFAKE_CHUNKS)
 @
 
+=config.nw
+type generated
+,config.nw: Makefile
+,	@$(ECHO) "Generate config.nw"
+,	@set -eu; >.tmp.config.nw; \
+,	    printf '<<AWK>>=\n%s\n' '$(AWK)' >>.tmp.config.nw; \
+,	    printf '<<PREFIX>>=\n%s\n' '$(PREFIX)' >>.tmp.config.nw; \
+,	    printf '<<LIBDIR>>=\n%s\n' '<<PREFIX>>/lib/noweb' >>.tmp.config.nw; \
+,	    printf '@\n' >> .tmp.config.nw
+,	@$(MV) '.tmp.config.nw' 'config.nw'
+,	@$(CHMOD_0444) 'config.nw'
+@
+
+=btdefn
+type nofake
+source config.nw
+source btdefn.nw
+chunk btdefn btdefn
+target-option btdefn executable 1
+@
+
+=h2a
+type nofake
+source config.nw
+source h2a.nw
+chunk h2a h2a
+target-option h2a executable 1
+@
+
+=nwmtime
+type nofake
+source config.nw
+source nwmtime.nw
+chunk nwmtime nwmtime
+target-option nwmtime executable 1
+@
+
+=pipedocs
+type nofake
+source config.nw
+source pipedocs.nw
+chunk pipedocs pipedocs
+target-option pipedocs executable 1
+@
+
+=unmarkup
+type nofake
+source config.nw
+source unmarkup.nw
+chunk unmarkup unmarkup
+target-option unmarkup executable 1
+@
+
+=emptydefn
+type nofake
+source config.nw
+source emptydefn.nw
+chunk emptydefn emptydefn
+target-option emptydefn executable 1
+@
+
 =toascii
 type nofake
+source config.nw
 source toascii.nw
 chunk toascii toascii
 target-option toascii executable 1
@@ -13,9 +75,23 @@ target-option toascii executable 1
 
 =noxref
 type nofake
+source config.nw
 source noxref.nw
 chunk * noxref
 target-option noxref executable 1
+@
+
+=install
+,.PHONY: install
+,install: $(NOFAKE_CHUNKS)
+,	$(INSTALL) -D -m 755 btdefn '$(PREFIX)/lib/noweb/btdefn'
+,	$(INSTALL) -D -m 755 h2a '$(PREFIX)/lib/noweb/h2a'
+,	$(INSTALL) -D -m 755 nwmtime '$(PREFIX)/lib/noweb/nwmtime'
+,	$(INSTALL) -D -m 755 pipedocs '$(PREFIX)/lib/noweb/pipedocs'
+,	$(INSTALL) -D -m 755 toascii '$(PREFIX)/lib/noweb/toascii'
+,	$(INSTALL) -D -m 755 noxref '$(PREFIX)/lib/noweb/noxref'
+,	$(INSTALL) -D -m 755 unmarkup '$(PREFIX)/lib/noweb/unmarkup'
+,	$(INSTALL) -D -m 755 emptydefn '$(PREFIX)/lib/noweb/emptydefn'
 @
 
 =update-Makefiles

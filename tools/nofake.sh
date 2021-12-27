@@ -3,8 +3,8 @@
 set -eu
 
 if [ x"${ZSH_VERSION:-}" != x ]; then
-    # let zsh behave like dash, bash and others shells when expanding
-    # parameters
+    # let zsh behave like dash, bash and others shells when
+    # expanding parameters
     setopt sh_word_split
 fi
 
