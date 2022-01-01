@@ -65,13 +65,14 @@ nofake - notangle replacement for the noweb literate programming tool
 
 =head1 SYNOPSIS
 
-B<nofake> [B<-R>I<chunk> ...] [B<-L>[I<format>]] [I<file>] ...
+B<nofake> [B<-R>I<chunk> ...] [B<-L>[I<format>]] [B<--dump> state]
+[B<--load> state] [I<file> ...]
 
-B<nofake> [B<--version>|B<-v>]
+B<nofake> [B<--version> | B<-v>]
 
-B<nofake> [B<--list-all>] [I<file>] ...
+B<nofake> [B<--list-all>] [I<file> ...]
 
-B<nofake> [B<--list-roots>] [I<file>] ...
+B<nofake> [B<--list-roots>] [I<file> ...]
 
 =head1 DESCRIPTION
 
@@ -91,8 +92,8 @@ stdin, if no I<chunk> is named, B<nofake> extracts the chunk C<*>.
 
 =item B<-R>I<chunk>
 
-Extract chunk I<chunk> (recursively) from the noweb file and write it to
-stdout.
+Extract chunk I<chunk> (recursively) from the B<noweb> file and write it
+to stdout.
 
 =item B<-L>[I<format>]
 
@@ -105,11 +106,46 @@ a newline. The default C<#line %L "%F"%N> is suitable for C compilers.
 
 =item B<--list-all>
 
-List all I<chunks> in noweb files.
+List all I<chunks> in B<noweb> files.
 
 =item B<--list-roots>
 
-List all I<chunks> in noweb files that are not referenced by other chunks.
+List all I<chunks> in B<noweb> files that are not referenced by other chunks.
+
+=item B<--dump> state
+
+Save the state after reading B<noweb> sources.
+
+=item B<--load> state
+
+Load a previously dumped state, this can speed things up if processing a large
+set of documents and extracting various chunks individually from such set.
+
+The dumping and loading of states shouldn't affect normal nofake operation, all
+other options are available. Please note however that:
+
+- This is not supported by B<notangle>.
+
+- If loading state from stdin (using - as state), it is not possible to read
+noweb document from stdin.
+
+- If dumping state to stdout (using - as state), no -R option should be given.
+
+- The default behaviour of reading from stdin is preserved if no input files are
+given, unless loading state from stdin. Thus, when dumping and loading state,
+these works as expected:
+
+    nofake -Rdefaults --dump state nofake.nw
+
+    nofake -Rdefaults --load - <state
+
+    nofake -Rdefaults --load state </dev/null
+
+    cat state | nofake -Rdefaults --load -
+
+    nofake --dump - nofake.nw | nofake -Rdefaults --load -
+
+    nofake --dump - nofake.nw | nofake -Rdefaults --load - nofake.nw
 
 =back
 
@@ -263,13 +299,16 @@ chunk may contain references to other chunks. These are ignored when a
 chunk is read and expanded when then chunk itself is expanded.
 
 <<defaults>>=
-my $lineformat = '#line %L "%F"%N';   # default format for #line directive
-my $sync = 0;                         # default: do not emit #line directives
+my $lineformat = '#line %L "%F"%N';
 
-my %chunks = ();                      # hash table for chunks
-my %chunks_options = ();              # hash table for chunks options
+# do not emit #line directives
+my $sync = 0;
 
-my $list_roots = 0;                   # list only root chunks
+# hash tables for chunks and chunks options
+my %chunks = ();
+my %chunks_options = ();
+
+my $list_roots = 0;
 @
 
 % ------------------------------------------------------------------
@@ -528,11 +567,103 @@ sub usage {
     which is also included at the end of this Perl script.
 
     nofake [-Rchunk ...] [-L[format]] [file] ...
-    nofake [--version|-v]
+    nofake [--version | -v]
     nofake [--list-all] [file] ...
     nofake [--list-roots] [file] ...
 EOF
 }
+@
+
+<<error won't load from tty>>=
+Carp::croak("ERROR: Will not load binary data from a terminal.");
+@
+
+<<error won't dump to tty>>=
+Carp::croak("ERROR: Will not dump binary data to a terminal.");
+@
+
+See https://perldoc.perl.org/5.8.9/Storable for more information.
+
+<<dump state>>=
+use Storable qw{lock_store store_fd};
+my $state = [\%chunks_options, \%chunks];
+if ($dump eq '-') {
+    if (-t STDOUT) {
+        <<error won't dump to tty>>
+    } else {
+        store_fd($state, \*STDOUT);
+    }
+} else {
+    lock_store($state, $dump);
+}
+@
+
+<<error state file does not exist>>=
+Carp::croak("ERROR: State file does not exist.");
+@
+
+<<load state>>=
+use Storable qw{lock_retrieve fd_retrieve};
+my $state;
+if ($load eq '-') {
+    if (-t STDIN) {
+        <<error won't load from tty>>
+    } else {
+        $state = fd_retrieve(*STDIN);
+    }
+} elsif (-f $load) {
+    $state = lock_retrieve($load);
+} else {
+    <<error state file does not exist>>
+}
+%chunks_options = %{ $state->[0] };
+%chunks = %{ $state->[1] };
+@
+
+<<read files>>=
+if ($load ne '-' and not @files) {
+    push(@files, '-');
+}
+read_file($_) for @files;
+@
+
+<<arguments ignored for compatibility with notangle>>=
+elsif (/^-filter$/) { shift(@ARGV) }
+@
+
+<<arguments handling: dump and load>>=
+elsif (/^--dump=(.+)$/) { $dump = $1 }
+elsif (/^--dump$/)      { $dump = shift(@ARGV) }
+elsif (/^--load=(.+)$/) { $load = $1 }
+elsif (/^--load$/)      { $load = shift(@ARGV) }
+@
+
+<<arguments handling: listing and no-op>>=
+elsif (/^--list-all$/)   { $list_all = 1 }
+elsif (/^--list-roots$/) { $list_roots = 1 }
+elsif (/^--no-op$/)      { $no_op = 1 }
+@
+
+<<arguments handling: -L, -R and version>>=
+if (/^-L(.*)/) {
+    $sync = 1;
+    $lineformat = $1 if $1;
+}
+elsif (/^-R(.+)/)         { push(@chunks, $1) }
+elsif (/^-(v|-version)$/) { version(); exit(0) }
+@
+
+<<process arguments>>=
+<<arguments handling: -L, -R and version>>
+<<arguments handling: listing and no-op>>
+<<arguments handling: dump and load>>
+<<arguments ignored for compatibility with notangle>>
+elsif (/^(-.*)$/) { usage($1); exit(1) }
+else { push(@files, $_) }
+@
+
+<<error stdout output ambiguity>>=
+Carp::croak("ERROR: Cannot write to stdout due to output ambiguity.");
 @
 
 We parse the command line and start working: reading the noweb files and then
@@ -543,34 +674,33 @@ my @chunks = ();
 my @files = ();
 my $list_all = 0;
 my $no_op = 0;
+my $dump = 0;
+my $load = 0;
 
 while ($_ = shift(@ARGV)) {
-    if (/^\-L(.*)/) {
-        $sync = 1;
-        $lineformat = $1 if $1;
+    <<process arguments>>
+}
+
+if ($dump eq '-') {
+    if ($list_all or $list_roots or @chunks) {
+        <<error stdout output ambiguity>>
     }
-    elsif (/^\-R(.+)/)          { push(@chunks, $1) }
-    elsif (/^\-(v|-version)$/)  { version(); exit(0) }
-    elsif (/^\--list-all$/)     { $list_all = 1 }
-    elsif (/^\--list-roots$/)   { $list_roots = 1 }
-    elsif (/^\-filter$/)        { shift(@ARGV) }  # ignore
-    elsif (/^\--no-op$/)        { $no_op = 1 }
-    elsif (/^(\-.*)$/)          { usage($1); exit(1) }
-    else                        { push(@files, $_) }
+    $no_op = 1;
 }
 
-if (!@chunks) {
-    push(@chunks, '*');
+if ($load) {
+    <<load state>>
 }
 
-if (!@files) {
-    push(@files, '-');
-}
+<<read files>>
 
-read_file($_) for @files;
+if ($dump) {
+    <<dump state>>
+}
 
 if ($no_op) {
-    # just read lines, useful for validating documentation chunks
+    # useful for documentation chunks validation and set when dumping to
+    # stdout
 } elsif ($list_all) {
     print("@<<${_}@>>") for sort(keys(%chunks_options));
 } elsif ($list_roots) {
@@ -600,6 +730,9 @@ if (!$chunks_options{$chunk}) {
 @
 
 <<output lines>>=
+if (not @chunks) {
+    push(@chunks, '*');
+}
 for my $chunk (@chunks) {
     <<verify \$chunk is defined>>
 }
@@ -683,8 +816,8 @@ $0 =~ s|\.bat||i;
 unless (-f $0) {
     $0 =~ s|.*[/\\]||;
     for (".", split ';', $ENV{PATH}) {
-	$_ = "." if $_ eq "";
-	$0 = "$_/$0" , goto doit if -f "$_/$0";
+        $_ = "." if $_ eq "";
+        $0 = "$_/$0" , goto doit if -f "$_/$0";
     }
     die "`$0' not found.\n";
 }
@@ -698,12 +831,12 @@ runperl.bat - "universal" batch file to run perl scripts
 
 =head1 SYNOPSIS
 
-	C:\> copy runperl.bat foo.bat
-	C:\> foo
-	[..runs the perl script `foo'..]
+        C:\> copy runperl.bat foo.bat
+        C:\> foo
+        [..runs the perl script `foo'..]
 
-	C:\> foo.bat
-	[..runs the perl script `foo'..]
+        C:\> foo.bat
+        [..runs the perl script `foo'..]
 
 
 =head1 DESCRIPTION
