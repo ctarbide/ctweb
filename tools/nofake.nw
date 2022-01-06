@@ -929,7 +929,7 @@ while [ $# -gt 0 ]; do
 
         -) sources="${sources} '-'" ;;
         -*)
-            echo "${0##*/}: Unrecognized option '${1}'." 1>&2
+            ${ECHO} "${0##*/}: Unrecognized option '${1}'." 1>&2
             exit 1
             ;;
         *) sources="${sources} '${SRC_PREFIX}${1}'" ;;
@@ -938,7 +938,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ x"${output}" = x ]; then
-    echo "${0##*/}: No output specified, use '-o' option." 1>&2
+    ${ECHO} "${0##*/}: No output specified, use '-o' option." 1>&2
     exit 1
 fi
 
@@ -957,16 +957,16 @@ if ! uptodate; then
     eval "set -- ${opts} ${chunks} ${sources}"
     ${NOFAKE} ${NOFAKEFLAGS} "$@" >"${tmpfile}"
     if ! ${CMP} "${tmpfile}" "${output}"; then
-        ${ECHO} "Generate "'"'"${output}"'"'"."
+        ${ECHO} "Generate "'"'"${output}"'"'"." 1>&2
         ${MV} "${tmpfile}" "${output}"
         ${CHMOD} "${output}"
     else
         ${RM} "${tmpfile}"
-        ${ECHO} 'Output "'"${output}"'" did not change.'
+        ${ECHO} 'Output "'"${output}"'" did not change.' 1>&2
     fi
     ${TOUCH} "${stamp}"
 else
-    ${ECHO} 'Output "'"${output}"'" is up to date.'
+    ${ECHO} 'Output "'"${output}"'" is up to date.' 1>&2
 fi
 @
 
