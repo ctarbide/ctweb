@@ -38,10 +38,10 @@ chunk noweb.sty noweb.sty
 =install
 ,.PHONY: install
 ,install:
-,	set -eu; texmflocal=`kpsewhich -var-value TEXMFLOCAL`; \
-,	    $(INSTALL) -D -m 444 nwmac.tex "$${texmflocal}/tex/plain/local/nwmac.tex"; \
-,	    $(INSTALL) -D -m 444 noweb.sty "$${texmflocal}/tex/latex/local/noweb.sty"
-,	-texhash || echo "Program texhash not found or failed"
+,	set -eu; tds=`kpsewhich -var-value TEXMFHOME`; \
+,	    $(INSTALL) -D -m 444 nwmac.tex "$${tds}/tex/plain/local/nwmac.tex"; \
+,	    $(INSTALL) -D -m 444 noweb.sty "$${tds}/tex/latex/local/noweb.sty"; \
+,	    texhash "$${tds}"
 @
 
 =update-Makefiles
