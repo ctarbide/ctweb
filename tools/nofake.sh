@@ -2,9 +2,11 @@
 
 set -eu
 
+die(){ ev=$1; shift; for msg in "$@"; do echo "${msg}"; done; exit "${ev}"; }
+
 if [ x"${ZSH_VERSION:-}" != x ]; then
-    # let zsh behave like dash, bash and others shells when
-    # expanding parameters
+    # let zsh behave like ash, ksh and other standard
+    # shells when expanding parameters
     setopt sh_word_split
 fi
 
@@ -19,6 +21,45 @@ RM=${RM:-rm -f}
 TOUCH=${TOUCH:-touch}
 CHMOD=${CHMOD:-chmod 0444}
 CMP=${CMP:-cmp -s}
+
+u0Aa(){
+    perl -e'@map=map{chr}48..57,65..90,97..122;
+        $c = $ARGV[0];
+        while($c and read(STDIN,$d,64)){
+            for $x (unpack(q{C*},$d)) {
+                last unless $c;
+                next if $x >= scalar(@map);
+                $c--;
+                print($map[$x]);
+            }
+        }' -- "${1}" </dev/urandom
+}
+r0Aa(){
+    perl -e'@map=map{chr}48..57,65..90,97..122;
+        sub c{$map[int(rand(scalar(@map)))]}
+        for ($c=$ARGV[0];$c;$c--) { print(c) }' -- "${1}"
+}
+temporary_file(){
+    if type mktemp >/dev/null 2>&1; then
+        tmpfile=`mktemp`
+    elif type perl >/dev/null 2>&1 && test -r /dev/urandom; then
+        tmpfile="/tmp/tmp.`u0Aa 12`"
+        ( umask 0177; : > "${tmpfile}" )
+    elif type perl >/dev/null 2>&1; then
+        tmpfile="/tmp/tmp.`r0Aa 12`"
+        ( umask 0177; : > "${tmpfile}" )
+    else
+        die 1 'error: mktemp not found'
+    fi
+    echo "${tmpfile}"
+}
+tmpfiles=
+rm_tmpfiles(){
+    eval "set -- ${tmpfiles}"
+    rm -f -- "$@"
+}
+# 0:exit, 1:hup, 2:int, 3:quit, 15:term
+trap 'rm_tmpfiles' 0 1 2 3 15
 
 opts=
 chunks=
@@ -50,7 +91,6 @@ if [ x"${output}" = x ]; then
 fi
 
 stamp=${output}.stamp
-tmpfile=.tmp.${output}
 
 uptodate(){
     test="test '(' -e '${stamp}' -a -e '${output}'"
@@ -59,6 +99,9 @@ uptodate(){
     test="${test} ')'"
     eval "${test}"
 }
+
+tmpfile=`temporary_file`
+tmpfiles="${tmpfiles} '${tmpfile}'"
 
 if ! uptodate; then
     eval "set -- ${opts} ${chunks} ${sources}"
