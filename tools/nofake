@@ -132,7 +132,11 @@ sub extract {
     my $lnum_previous = -1;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
         if ($sync and $lnum != $lnum_previous + 1) {
-            push(@res, [0, $fname, $lnum]);
+            if (@res and ref($res[$#res]) eq 'ARRAY') {
+                push(@{ $res[$#res] }, [0, $fname, $lnum]);
+            } else {
+                push(@res, [[0, $fname, $lnum]]);
+            }
         }
         my $found_chunk_ref;
         for (;;) {
@@ -145,9 +149,13 @@ sub extract {
                     my $line_new = undef;
                     my @chunkreflines = extract($prefix . $before, $fname,
                         $lnum, $chunkref);
-                    while (@chunkreflines and ref($chunkreflines[0])) {
+                    while (@chunkreflines and ref($chunkreflines[0]) eq 'ARRAY') {
                         # propagate special items early, before processing lines
-                        push(@res, shift(@chunkreflines));
+                        if (@res and ref($res[-1]) eq 'ARRAY') {
+                            push(@{ $res[-1] }, @{ shift(@chunkreflines) });
+                        } else {
+                            push(@res, [ @{ shift(@chunkreflines) } ]);
+                        }
                     }
                     if (@chunkreflines > 1) {
                         # many lines
@@ -341,7 +349,8 @@ if ($no_op) {
         my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
         for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
             if (ref($item) eq 'ARRAY') {
-                print line_directive($item->[1], $item->[2]);
+                my $head = $item->[0];
+                print line_directive($head->[1], $head->[2]);
             } else {
                 print $item;
             }

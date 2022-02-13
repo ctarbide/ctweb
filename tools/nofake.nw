@@ -415,9 +415,13 @@ These special items will be processed at the top level, after all
 files have been read.
 
 <<propagate header special items>>=
-while (@chunkreflines and ref($chunkreflines[0])) {
+while (@chunkreflines and ref($chunkreflines[0]) eq 'ARRAY') {
     # propagate special items early, before processing lines
-    push(@res, shift(@chunkreflines));
+    if (@res and ref($res[-1]) eq 'ARRAY') {
+        push(@{ $res[-1] }, @{ shift(@chunkreflines) });
+    } else {
+        push(@res, [ @{ shift(@chunkreflines) } ]);
+    }
 }
 @
 
@@ -525,7 +529,11 @@ if ($list_roots and @input) {
 Special item [[0]] is a line number directive.
 
 <<push line number directive>>=
-push(@res, [0, $fname, $lnum]);
+if (@res and ref($res[$#res]) eq 'ARRAY') {
+    push(@{ $res[$#res] }, [0, $fname, $lnum]);
+} else {
+    push(@res, [[0, $fname, $lnum]]);
+}
 @
 
 <<error recursive chunk definition>>=
@@ -715,7 +723,8 @@ local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
 for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
     if (ref($item) eq 'ARRAY') {
-        print line_directive($item->[1], $item->[2]);
+        my $head = $item->[0];
+        print line_directive($head->[1], $head->[2]);
     } else {
         print $item;
     }
