@@ -82,7 +82,7 @@ the source code for compilation requires notangle(1). To allow source
 code to be shipped to users not using noweb(1), B<nofake> offers the
 most commonly used functionality of notangle(1) as a simple perl(1)
 script. Alas, B<nofake> extracts source code from a file in noweb(1)
-syntax: B<nofake> reads I<file> and extracts the code chunke named
+syntax: B<nofake> reads I<file> and extracts the code chunk named
 I<chunk> to stdout. If no I<file> is provided, B<nofake> reads from
 stdin, if no I<chunk> is named, B<nofake> extracts the chunk C<*>.
 
@@ -277,7 +277,7 @@ EOF
 
 <<defaults>>
 
-<<many utils>>
+<<utils>>
 <<line directive>>
 <<read file>>
 <<sub extract>>
@@ -368,7 +368,7 @@ if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
     } else {
         # regular line inside chunk
         $line =~ s,^\@\@,\@,;
-        set_many(%chunks, $chunk, $ARGV, $., $line . "\n");
+        set_many(%chunks, $chunk, $ARGV, int($.), $line . "\n");
     }
 } else {
     if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
@@ -529,10 +529,11 @@ if ($list_roots and @input) {
 Special item [[0]] is a line number directive.
 
 <<push line number directive>>=
+my $linenum = [0, $fname, $lnum];
 if (@res and ref($res[$#res]) eq 'ARRAY') {
-    push(@{ $res[$#res] }, [0, $fname, $lnum]);
+    push(@{ $res[$#res] }, $linenum);
 } else {
-    push(@res, [[0, $fname, $lnum]]);
+    push(@res, [$linenum]);
 }
 @
 
@@ -723,7 +724,7 @@ local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
 for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
     if (ref($item) eq 'ARRAY') {
-        my $head = $item->[0];
+        my $head = $item->[-1];
         print line_directive($head->[1], $head->[2]);
     } else {
         print $item;
@@ -767,7 +768,7 @@ for my $chunk (@all_chunks) {
 }
 @
 
-<<many utils>>=
+<<utils>>=
 sub set_many (\%@) {
     my ($h, $k, @rest) = @_;
     if (defined($h->{$k})) {

@@ -105,7 +105,7 @@ sub read_file {
             } else {
                 # regular line inside chunk
                 $line =~ s,^\@\@,\@,;
-                set_many(%chunks, $chunk, $ARGV, $., $line . "\n");
+                set_many(%chunks, $chunk, $ARGV, int($.), $line . "\n");
             }
         } else {
             if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
@@ -132,10 +132,11 @@ sub extract {
     my $lnum_previous = -1;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
         if ($sync and $lnum != $lnum_previous + 1) {
+            my $linenum = [0, $fname, $lnum];
             if (@res and ref($res[$#res]) eq 'ARRAY') {
-                push(@{ $res[$#res] }, [0, $fname, $lnum]);
+                push(@{ $res[$#res] }, $linenum);
             } else {
-                push(@res, [[0, $fname, $lnum]]);
+                push(@res, [$linenum]);
             }
         }
         my $found_chunk_ref;
@@ -349,7 +350,7 @@ if ($no_op) {
         my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
         for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
             if (ref($item) eq 'ARRAY') {
-                my $head = $item->[0];
+                my $head = $item->[-1];
                 print line_directive($head->[1], $head->[2]);
             } else {
                 print $item;
@@ -383,7 +384,7 @@ the source code for compilation requires notangle(1). To allow source
 code to be shipped to users not using noweb(1), B<nofake> offers the
 most commonly used functionality of notangle(1) as a simple perl(1)
 script. Alas, B<nofake> extracts source code from a file in noweb(1)
-syntax: B<nofake> reads I<file> and extracts the code chunke named
+syntax: B<nofake> reads I<file> and extracts the code chunk named
 I<chunk> to stdout. If no I<file> is provided, B<nofake> reads from
 stdin, if no I<chunk> is named, B<nofake> extracts the chunk C<*>.
 

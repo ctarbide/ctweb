@@ -1,0 +1,17 @@
+
+These files are part of a simple, self contained build system, you shouldn't
+depend on extenal tools except:
+
+    - a bourne shell
+
+    - a portable awk, like nawk
+
+    - and a standard make (e.g. bmake).
+
+The Makefile is generated from the build.sh script on the top level directory,
+the actions file loosely resemble noweb syntax and contain both commands and
+documentation in plain text.
+
+To list available targets/actions (e.g., make nofake):
+
+    grep ^= actions

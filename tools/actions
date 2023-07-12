@@ -32,13 +32,33 @@
 ,	@$(ECHO) 'Validate with: nroff -man nofake.1 | more'
 @
 
-=nofake.pdf
+=nofake.tex
 ,nofake.tex: nofake.nw
 ,	noweave -delay -index -latex nofake.nw > .tmp.nofake.tex
 ,	$(CHMOD_0444) .tmp.nofake.tex
 ,	$(MV) .tmp.nofake.tex nofake.tex
-,nofake.pdf: nofake.tex nofake.tex
+@
+
+=nofake.pdf
+,nofake.pdf: nofake.tex
 ,	latexmk -pdf nofake
+@
+
+How to generate nofake.pdf using docker:
+
+References:
+
+  - docker-cwd.sh: https://github.com/ctarbide/coolscripts
+  - thomasweise/texlive: https://github.com/thomasWeise/docker-texlive
+
+=nofake_pdf_docker
+,.PHONY: nofake_pdf_docker
+,nofake_pdf_docker: nofake.tex
+,	docker-cwd.sh --rm -v "`pwd`:/doc" \
+,	    -v "`pwd`/../src/tex/nwmac.tex:/texmf/tex/plain/local/nwmac.tex" \
+,	    -v "`pwd`/../src/tex/noweb.sty:/texmf/tex/latex/local/noweb.sty" \
+,	    thomasweise/texlive \
+,	    sh -eux -c 'texhash /texmf; make nofake.pdf'
 @
 
 =gen-Makefile.awk
@@ -69,4 +89,6 @@
 ,.PHONY: clean
 ,clean:
 ,	$(RM) *.$(OBJEXT) $(GENERATED_TARGETS)
+,	$(RM) gen-Makefile-s1.awk gen-Makefile-s1.nw
+,	$(RM) nofake.aux nofake.fdb_latexmk nofake.fls nofake.log nofake.out nofake.tex nofake.toc
 @
