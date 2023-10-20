@@ -68,14 +68,14 @@ output=
 
 while [ $# -gt 0 ]; do
     case "${1}" in
-        -L*) opts="${opts} '${1}'" ;;
-        -R*) chunks="${chunks} '${1}'" ;;
+        -L*|--error) opts="${opts:+${opts} }'${1}'" ;;
+        -R*) chunks="${chunks:+${chunks} }'${1}'" ;;
 
         -o|--output) output=${2}; shift ;;
         --output=*) output=${1#*=} ;;
         -o*) output=${1#??} ;;
 
-        -) sources="${sources} '-'" ;;
+        -) sources="${sources:+${sources} }'-'" ;;
         -*)
             ${ECHO} "${0##*/}: Unrecognized option '${1}'." 1>&2
             exit 1

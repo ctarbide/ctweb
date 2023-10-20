@@ -66,7 +66,7 @@ nofake - notangle replacement for the noweb literate programming tool
 =head1 SYNOPSIS
 
 B<nofake> [B<-R>I<chunk> ...] [B<-L>[I<format>]] [B<--dump> state]
-[B<--load> state] [I<file> ...]
+[B<--load> state] [B<--error>] [I<file> ...]
 
 B<nofake> [B<--version> | B<-v>]
 
@@ -146,6 +146,10 @@ these works as expected:
     nofake --dump - nofake.nw | nofake -Rdefaults --load -
 
     nofake --dump - nofake.nw | nofake -Rdefaults --load - nofake.nw
+
+=item B<--error>
+
+Treat warnings as errors.
 
 =back
 
@@ -265,6 +269,8 @@ $SIG{__DIE__} = \&Carp::confess;
 
 local $\ = "\n";
 
+my $carp_or_croak = \&Carp::carp;
+
 sub version {
     print @<<'EOF';
     (c) 2021 C. Tarbide <ctarbide@tuta.io>
@@ -349,7 +355,7 @@ or newline.
 A [[@@]] at the first column must yield a [[@]].
 
 <<warn unescaped [[<<]] in documentation chunk>>=
-Carp::carp("WARNING: Unescaped @<< in documentation" .
+$carp_or_croak->("WARNING: Unescaped @<< in documentation" .
     " chunk at line ${ARGV}:${.}.");
 @
 
@@ -426,7 +432,7 @@ while (@chunkreflines and ref($chunkreflines[0]) eq 'ARRAY') {
 @
 
 <<warn empty code chunk>>=
-Carp::carp("WARNING: Code chunk @<<${chunkref}@>> is" .
+$carp_or_croak->("WARNING: Code chunk @<<${chunkref}@>> is" .
     " empty (at ${fname}:${lnum}).");
 @
 
@@ -486,7 +492,7 @@ if (@chunkreflines > 1) {
 @
 
 <<warn chunk does not exit>>=
-Carp::carp("WARNING: Code chunk @<<${chunkref}@>>" .
+$carp_or_croak->("WARNING: Code chunk @<<${chunkref}@>>" .
     " does not exist (at ${fname}:${lnum}).");
 @
 
@@ -647,6 +653,10 @@ elsif (/^--load=(.+)$/) { $load = $1 }
 elsif (/^--load$/)      { $load = shift(@ARGV) }
 @
 
+<<arguments handling: force error on warnings>>=
+elsif (/^--error$/) { $carp_or_croak = \&Carp::croak; }
+@
+
 <<arguments handling: listing and no-op>>=
 elsif (/^--list-all$/)   { $list_all = 1 }
 elsif (/^--list-roots$/) { $list_roots = 1 }
@@ -666,6 +676,7 @@ elsif (/^-(v|-version)$/) { version(); exit(0) }
 <<arguments handling: -L, -R and version>>
 <<arguments handling: listing and no-op>>
 <<arguments handling: dump and load>>
+<<arguments handling: force error on warnings>>
 <<arguments ignored for compatibility with notangle>>
 elsif (/^(-.*)$/) { usage($1); exit(1) }
 else { push(@files, $_) }
@@ -933,14 +944,14 @@ output=
 
 while [ $# -gt 0 ]; do
     case "${1}" in
-        -L*) opts="${opts} '${1}'" ;;
-        -R*) chunks="${chunks} '${1}'" ;;
+        -L*|--error) opts="${opts:+${opts} }'${1}'" ;;
+        -R*) chunks="${chunks:+${chunks} }'${1}'" ;;
 
         -o|--output) output=${2}; shift ;;
         --output=*) output=${1#*=} ;;
         -o*) output=${1#??} ;;
 
-        -) sources="${sources} '-'" ;;
+        -) sources="${sources:+${sources} }'-'" ;;
         -*)
             ${ECHO} "${0##*/}: Unrecognized option '${1}'." 1>&2
             exit 1

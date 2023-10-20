@@ -31,6 +31,8 @@ $SIG{__DIE__} = \&Carp::confess;
 
 local $\ = "\n";
 
+my $carp_or_croak = \&Carp::carp;
+
 sub version {
     print <<'EOF';
     (c) 2021 C. Tarbide <ctarbide@tuta.io>
@@ -109,7 +111,7 @@ sub read_file {
             }
         } else {
             if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
-                Carp::carp("WARNING: Unescaped << in documentation" .
+                $carp_or_croak->("WARNING: Unescaped << in documentation" .
                     " chunk at line ${ARGV}:${.}.");
             }
         }
@@ -208,7 +210,7 @@ sub extract {
                             }
                         }
                     } else {
-                        Carp::carp("WARNING: Code chunk <<${chunkref}>> is" .
+                        $carp_or_croak->("WARNING: Code chunk <<${chunkref}>> is" .
                             " empty (at ${fname}:${lnum}).");
                     }
                     if (defined($line_new)) {
@@ -216,7 +218,7 @@ sub extract {
                         next;
                     }
                 } else {
-                    Carp::carp("WARNING: Code chunk <<${chunkref}>>" .
+                    $carp_or_croak->("WARNING: Code chunk <<${chunkref}>>" .
                         " does not exist (at ${fname}:${lnum}).");
                 }
                 $lnum = -1; # force line number directive
@@ -266,6 +268,7 @@ while ($_ = shift(@ARGV)) {
     elsif (/^--dump$/)      { $dump = shift(@ARGV) }
     elsif (/^--load=(.+)$/) { $load = $1 }
     elsif (/^--load$/)      { $load = shift(@ARGV) }
+    elsif (/^--error$/) { $carp_or_croak = \&Carp::croak; }
     elsif (/^-filter$/) { shift(@ARGV) }
     elsif (/^(-.*)$/) { usage($1); exit(1) }
     else { push(@files, $_) }
@@ -368,7 +371,7 @@ nofake - notangle replacement for the noweb literate programming tool
 =head1 SYNOPSIS
 
 B<nofake> [B<-R>I<chunk> ...] [B<-L>[I<format>]] [B<--dump> state]
-[B<--load> state] [I<file> ...]
+[B<--load> state] [B<--error>] [I<file> ...]
 
 B<nofake> [B<--version> | B<-v>]
 
@@ -448,6 +451,10 @@ these works as expected:
     nofake --dump - nofake.nw | nofake -Rdefaults --load -
 
     nofake --dump - nofake.nw | nofake -Rdefaults --load - nofake.nw
+
+=item B<--error>
+
+Treat warnings as errors.
 
 =back
 
