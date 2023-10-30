@@ -573,18 +573,27 @@ sub extract {
 }
 @
 
+<<usage text>>=
+Usage:
+
+    nofake [-Rchunk ...] [-L[format]] [--dump state] \
+           [--load state] [--error] [file] ...
+
+    nofake [--version | -v]
+
+    nofake [--list-all] [file] ...
+
+    nofake [--list-roots] [file] ...
+@
+
 <<sub usage>>=
 sub usage {
     my $arg = shift @_;
-
     print STDERR <<EOF;
-    Unknown command line argument "$arg". See the manual page for help
-    which is also included at the end of this Perl script.
+Unknown command line argument "$arg". See the manual page for help
+which is also included at the end of this Perl script.
 
-    nofake [-Rchunk ...] [-L[format]] [file] ...
-    nofake [--version | -v]
-    nofake [--list-all] [file] ...
-    nofake [--list-roots] [file] ...
+<<usage text>>
 EOF
 }
 @
