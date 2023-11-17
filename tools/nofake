@@ -35,7 +35,7 @@ my $carp_or_croak = \&Carp::carp;
 
 sub version {
     print <<'EOF';
-    (c) 2021 C. Tarbide <ctarbide@tuta.io>
+    (c) 2023 C. Tarbide <ctarbide@tuta.io>
     (c) 2002 Christian Lindig <lindig@eecs.harvard.edu>
 
     NoFake is derived from the public domain NegWeb 1.0.1

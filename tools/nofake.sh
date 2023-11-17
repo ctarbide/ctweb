@@ -92,16 +92,33 @@ fi
 
 stamp=${output}.stamp
 
+inputid(){
+    perl -MCwd=realpath -MDigest::SHA=sha256_hex \
+        -le'print(sha256_hex(join(q{&}, map { realpath $_ } @ARGV)))' \
+        -- "$@"
+}
+
 uptodate(){
-    test="test '(' -e '${stamp}' -a -e '${output}'"
-    eval "set -- ${sources}"
-    for src do test="${test} -a '${stamp}' -nt ${src}"; done
-    test="${test} ')'"
-    eval "${test}"
+    if [ ! -e "${stamp}" ]; then
+        false
+    else
+        current_id=`head -n1 "${stamp}"`
+        if [ ! -e "${output}" -o x"${sources_id}" != x"${current_id}" ]; then
+            false
+        else
+            eval "set -- ${sources}"
+            test=
+            for src do test="${test:+${test} -a }'${stamp}' -nt ${src}"; done
+            eval "test '(' ${test} ')'"
+        fi
+    fi
 }
 
 tmpfile=`temporary_file`
 tmpfiles="${tmpfiles} '${tmpfile}'"
+
+eval "set -- ${sources}"
+sources_id=`inputid "$@"`
 
 if ! uptodate; then
     eval "set -- ${opts} ${chunks} ${sources}"
@@ -114,7 +131,7 @@ if ! uptodate; then
         ${RM} "${tmpfile}"
         ${ECHO} 'Output "'"${output}"'" did not change.' 1>&2
     fi
-    ${TOUCH} "${stamp}"
+    ${ECHO} "${sources_id}" > "${stamp}"
 else
     ${ECHO} 'Output "'"${output}"'" is up to date.' 1>&2
 fi
