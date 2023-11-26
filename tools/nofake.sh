@@ -92,9 +92,9 @@ fi
 
 stamp=${output}.stamp
 
-inputid(){
-    perl -MCwd=realpath -MDigest::SHA=sha256_hex \
-        -le'print(sha256_hex(join(q{&}, map { realpath $_ } @ARGV)))' \
+args_id(){
+    perl -MDigest::SHA=sha256_hex \
+        -le'print(sha256_hex(join(q{&}, @ARGV)))' \
         -- "$@"
 }
 
@@ -117,8 +117,8 @@ uptodate(){
 tmpfile=`temporary_file`
 tmpfiles="${tmpfiles} '${tmpfile}'"
 
-eval "set -- ${sources}"
-sources_id=`inputid "$@"`
+eval "set -- ${opts} ${chunks} ${sources}"
+sources_id=`args_id "$@"`
 
 if ! uptodate; then
     eval "set -- ${opts} ${chunks} ${sources}"
