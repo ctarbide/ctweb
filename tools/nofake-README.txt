@@ -16,6 +16,20 @@ store, where the keys are freely described and values can be recursively
 defined in terms of other keys.  To tangling is simply to query a specific
 key, nofake itself is implemented in noweb.
 
+Simple installation in a shell based environment:
+
+    baseurl=https://github.com/ctarbide/ctweb/raw/master/tools
+    curl -sSL -o nofake "${baseurl}/nofake"
+    curl -sSL -o nofake.sh "${baseurl}/nofake.sh"
+    chmod a+x nofake nofake.sh
+
+    # Is ~/local/bin on PATH?
+    # mv nofake nofake.sh ~/local/bin/
+
+
+For other platforms, see [1].
+
+
 - [84LITERATE]: Donald E. Knuth, Literate programming, THE COMPUTER
   JOURNAL(27):97-111, 1984.
   http://www.literateprogramming.com/knuthweb.pdf
@@ -23,4 +37,6 @@ key, nofake itself is implemented in noweb.
 - [94NOWEB]: Norman Ramsey, Literate programming simplified, IEEE Software
   11(5):97-105, September 1994.
   https://www.cs.tufts.edu/~nr/pubs/lpsimp.pdf
+
+- [1]: https://github.com/ctarbide/ctweb/blob/master/tools/nofake.pdf
 
