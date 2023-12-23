@@ -687,7 +687,7 @@ elsif (/^-(v|-version)$/) { version(); exit(0) }
 <<arguments handling: dump and load>>
 <<arguments handling: force error on warnings>>
 <<arguments ignored for compatibility with notangle>>
-elsif (/^(-.*)$/) { usage($1); exit(1) }
+elsif (/^(-.+)$/) { usage($1); exit(1) }
 else { push(@files, $_) }
 @
 
@@ -965,7 +965,7 @@ while [ $# -gt 0 ]; do
             ${ECHO} "${0##*/}: Unrecognized option '${1}'." 1>&2
             exit 1
             ;;
-        *) sources="${sources} '${SRC_PREFIX}${1}'" ;;
+        *) sources="${sources:+${sources} }'${SRC_PREFIX}${1}'" ;;
     esac
     shift
 done

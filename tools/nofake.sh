@@ -80,7 +80,7 @@ while [ $# -gt 0 ]; do
             ${ECHO} "${0##*/}: Unrecognized option '${1}'." 1>&2
             exit 1
             ;;
-        *) sources="${sources} '${SRC_PREFIX}${1}'" ;;
+        *) sources="${sources:+${sources} }'${SRC_PREFIX}${1}'" ;;
     esac
     shift
 done

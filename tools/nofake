@@ -275,7 +275,7 @@ while ($_ = shift(@ARGV)) {
     elsif (/^--load$/)      { $load = shift(@ARGV) }
     elsif (/^--error$/) { $carp_or_croak = \&Carp::croak; }
     elsif (/^-filter$/) { shift(@ARGV) }
-    elsif (/^(-.*)$/) { usage($1); exit(1) }
+    elsif (/^(-.+)$/) { usage($1); exit(1) }
     else { push(@files, $_) }
 }
 
