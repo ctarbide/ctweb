@@ -22,14 +22,27 @@ chunk nwmac.tex nwmac.tex
 chunk noweb.sty noweb.sty
 @
 
-=support.pdf
+=support.tex
 ,support.tex: support.nw
 ,	$(NOWEAVE) -delay -index -latex support.nw > .tmp.support.tex
 ,	$(CHMOD_0444) .tmp.support.tex
 ,	$(MV) .tmp.support.tex support.tex
+@
+
+=support.pdf
 ,support.pdf: support.tex
 #	latexmk -lualatex support.tex
 ,	latexmk -pdf support.tex
+@
+
+=support_pdf_docker
+,.PHONY: support_pdf_docker
+,support_pdf_docker: support.tex
+,	docker-cwd.sh --rm -v "`pwd`:/doc" \
+,	    -v "`pwd`/nwmac.tex:/texmf/tex/plain/local/nwmac.tex" \
+,	    -v "`pwd`/noweb.sty:/texmf/tex/latex/local/noweb.sty" \
+,	    thomasweise/texlive \
+,	    sh -eux -c 'texhash /texmf; make support.pdf'
 @
 
 # install action tested using texlive-2019, should work on recent versions
