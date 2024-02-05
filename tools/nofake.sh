@@ -16,6 +16,8 @@ SRC_PREFIX=${SRC_PREFIX:-}
 NOFAKE=${NOFAKE:-nofake}
 NOFAKEFLAGS=${NOFAKEFLAGS:-}
 ECHO=${ECHO:-echo}
+ECHO_ERROR=${ECHO_ERROR:-echo}
+ECHO_INFO=${ECHO_INFO:-echo}
 MV=${MV:-mv -f}
 RM=${RM:-rm -f}
 TOUCH=${TOUCH:-touch}
@@ -77,7 +79,7 @@ while [ $# -gt 0 ]; do
 
         -) sources="${sources:+${sources} }'-'" ;;
         -*)
-            ${ECHO} "${0##*/}: Unrecognized option '${1}'." 1>&2
+            ${ECHO_ERROR} "${0##*/}: Unrecognized option '${1}'." 1>&2
             exit 1
             ;;
         *) sources="${sources:+${sources} }'${SRC_PREFIX}${1}'" ;;
@@ -86,7 +88,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ x"${output}" = x ]; then
-    ${ECHO} "${0##*/}: No output specified, use '-o' option." 1>&2
+    ${ECHO_ERROR} "${0##*/}: No output specified, use '-o' option." 1>&2
     exit 1
 fi
 
@@ -124,14 +126,14 @@ if ! uptodate; then
     eval "set -- ${opts} ${chunks} ${sources}"
     ${NOFAKE} ${NOFAKEFLAGS} "$@" >"${tmpfile}"
     if ! ${CMP} "${tmpfile}" "${output}"; then
-        ${ECHO} "Generate "'"'"${output}"'"'"." 1>&2
+        ${ECHO_INFO} "Generate "'"'"${output}"'"'"." 1>&2
         ${MV} "${tmpfile}" "${output}"
         ${CHMOD} "${output}"
     else
         ${RM} "${tmpfile}"
-        ${ECHO} 'Output "'"${output}"'" did not change.' 1>&2
+        ${ECHO_INFO} 'Output "'"${output}"'" did not change.' 1>&2
     fi
     ${ECHO} "${sources_id}" > "${stamp}"
 else
-    ${ECHO} 'Output "'"${output}"'" is up to date.' 1>&2
+    ${ECHO_INFO} 'Output "'"${output}"'" is up to date.' 1>&2
 fi
