@@ -362,14 +362,14 @@ $carp_or_croak->("WARNING: Unescaped @<< in documentation" .
 <<read line vars>>=
 my $chunk = '';
 <<read line>>=
-if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
+if ($line =~ m{^ @<< (.+?) @>>= \s* $}x) {
     $chunk = $1;
     if (!$chunks_options{$chunk}) {
         $chunks_options{$chunk} = {nextractions => 0};
     }
     $chunks_options{$chunk}->{nchunks}++;
 } elsif ($chunk) {
-    if ($line =~ m{^\@(?:$|\s)}) {
+    if ($line =~ m{^ \@ (?: $ | \s) }x) {
         $chunk = '';
     } else {
         # regular line inside chunk
@@ -377,7 +377,7 @@ if ($line =~ m{^@<<(.+?)@>>=\s*$}) {
         set_many(%chunks, $chunk, $ARGV, int($.), $line . "\n");
     }
 } else {
-    if ($line =~ m{^(|.*?[^\@])<<} and $1 !~ m{\[\[}) {
+    if ($line =~ m{^ (|.*?[^\@]) @<<}x and $1 !~ m{\[\[}) {
         <<warn unescaped [[<<]] in documentation chunk>>
     }
 }
@@ -496,10 +496,12 @@ $carp_or_croak->("WARNING: Code chunk @<<${chunkref}@>>" .
     " does not exist (at ${fname}:${lnum}).");
 @
 
+
+
 <<process line>>=
 my $found_chunk_ref;
 for (;;) {
-    $found_chunk_ref = ($line =~ /^(|.*?[^\@])@<<([^<].*?[^\@])@>>(.*)/);
+    $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) @<< ([^<].*?[^\@]) @>> (.*) }x);
     if ($found_chunk_ref) {
         my $before = $1;
         my $chunkref = $2;
