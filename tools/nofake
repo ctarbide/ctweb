@@ -109,11 +109,6 @@ sub read_file {
                 $line =~ s,^\@\@,\@,;
                 set_many(%chunks, $chunk, $ARGV, int($.), $line . "\n");
             }
-        } else {
-            if ($line =~ m{^ (|.*?[^\@]) <<}x and $1 !~ m{\[\[}) {
-                $carp_or_croak->("WARNING: Unescaped << in documentation" .
-                    " chunk at line ${ARGV}:${.}.");
-            }
         }
     }
 }
@@ -143,7 +138,7 @@ sub extract {
         }
         my $found_chunk_ref;
         for (;;) {
-            $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) << ([^<].*?[^\@]) >> (.*) }x);
+            $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) << (.*?[^\@]) >> (|[^>].*?) $}x);
             if ($found_chunk_ref) {
                 my $before = $1;
                 my $chunkref = $2;

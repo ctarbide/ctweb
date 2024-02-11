@@ -15,7 +15,8 @@
 % l2h substitution noweb NOWEB
 % l2h substitution notangle NOTANGLE
 
-\title{{\nofake} - simple {\notangle} replacement for the {\noweb} literate programming tool}
+\title{{\nofake} - simple {\notangle} replacement for the {\noweb} literate
+programming tool}
 
 \begin{document}
 
@@ -354,11 +355,6 @@ or newline.
 
 A [[@@]] at the first column must yield a [[@]].
 
-<<warn unescaped [[<<]] in documentation chunk>>=
-$carp_or_croak->("WARNING: Unescaped @<< in documentation" .
-    " chunk at line ${ARGV}:${.}.");
-@
-
 <<read line vars>>=
 my $chunk = '';
 <<read line>>=
@@ -375,10 +371,6 @@ if ($line =~ m{^ @<< (.+?) @>>= \s* $}x) {
         # regular line inside chunk
         $line =~ s,^\@\@,\@,;
         set_many(%chunks, $chunk, $ARGV, int($.), $line . "\n");
-    }
-} else {
-    if ($line =~ m{^ (|.*?[^\@]) @<<}x and $1 !~ m{\[\[}) {
-        <<warn unescaped [[<<]] in documentation chunk>>
     }
 }
 @
@@ -496,12 +488,29 @@ $carp_or_croak->("WARNING: Code chunk @<<${chunkref}@>>" .
     " does not exist (at ${fname}:${lnum}).");
 @
 
+The chunk name usage follows the same rules from the definition, e.g.,
+[[<<<hi>>>=]] defines a chunk named [[<hi>]], so, the usage of [[<<<hi>>>]]
+also recall a chunk named [[<hi>]], there is consistency. But there are cases
+like [[<<<prefix>>page.html>]] that requires special attention: [[
 
+    <<<prefix>>=
+    <http://not.great.not.terrible/
+    <<#include <stdio.h>>>=
+    #include <stdio.h> /* for comparison */
+    <<*>>=
+    <<<prefix>>page.html>
+    <<#include <stdio.h>>>
+
+]], the output will be: [[
+
+    <http://not.great.not.terrible/page.html>
+    #include <stdio.h> /* for comparison */
+]]
 
 <<process line>>=
 my $found_chunk_ref;
 for (;;) {
-    $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) @<< ([^<].*?[^\@]) @>> (.*) }x);
+    $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) @<< (.*?[^\@]) >> (|[^>].*?) $}x);
     if ($found_chunk_ref) {
         my $before = $1;
         my $chunkref = $2;
@@ -1090,8 +1099,8 @@ if [ x"${ZSH_VERSION:-}" != x ]; then
 fi
 @
 
-\bibliographystyle{plain}
-\bibliography{web}
+% \bibliographystyle{plain}
+% \bibliography{web}
 
 \section{List of all chunks}
 \nowebchunks
