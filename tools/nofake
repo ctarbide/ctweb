@@ -27,7 +27,6 @@ use 5.008; # perl v5.8.0 was released on July 18, 2002
 use strict;
 use warnings FATAL => qw{uninitialized void inplace};
 use Carp ();
-$SIG{__DIE__} = \&Carp::confess;
 
 local $\ = "\n";
 
