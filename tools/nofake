@@ -125,20 +125,26 @@ sub extract {
     if ($list_roots and @input) {
         $chunks{$chunk} = [$input[0], $input[1], ""];
     }
+    my $fname_previous = '';
     my $lnum_previous = -1;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
-        if ($sync and $lnum != $lnum_previous + 1) {
-            my $linenum = [0, $fname, $lnum];
-            if (@res and ref($res[$#res]) eq 'ARRAY') {
-                push(@{ $res[$#res] }, $linenum);
-            } else {
-                push(@res, [$linenum]);
+        if ($sync) {
+            if ($fname ne $fname_previous or $lnum != $lnum_previous + 1) {
+                my $linenum = [0, $fname, $lnum];
+                if (@res and ref($res[-1]) eq 'ARRAY') {
+                    push(@{ $res[-1] }, $linenum);
+                } else {
+                    push(@res, [$linenum]);
+                }
             }
+            $fname_previous = $fname;
+            $lnum_previous = $lnum;
         }
         my $found_chunk_ref;
         for (;;) {
             $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) << (.*?[^\@]) >> (|[^>].*?) $}x);
             if ($found_chunk_ref) {
+                $lnum_previous = -1;
                 my $before = $1;
                 my $chunkref = $2;
                 my $after = $3;
@@ -146,20 +152,25 @@ sub extract {
                     my $line_new = undef;
                     my @chunkreflines = extract($prefix . $before, $fname,
                         $lnum, $chunkref);
+                    unless (@chunkreflines) {
+                        $carp_or_croak->("WARNING: Code chunk <<${chunkref}>> is" .
+                            " empty (at ${fname}:${lnum}).");
+                    }
                     while (@chunkreflines and ref($chunkreflines[0]) eq 'ARRAY') {
                         # propagate special items early, before processing lines
+                        my @chunkspecials = @{ shift(@chunkreflines) };
                         if (@res and ref($res[-1]) eq 'ARRAY') {
-                            push(@{ $res[-1] }, @{ shift(@chunkreflines) });
+                            push(@{ $res[-1] }, @chunkspecials);
                         } else {
-                            push(@res, [ @{ shift(@chunkreflines) } ]);
+                            push(@res, [ @chunkspecials ]);
                         }
                     }
                     if (@chunkreflines > 1) {
-                        # many lines
+                        # case: many lines
                         my $indent;
                         my $before_has_content = $before !~ m{^\s*$};
                         if ($before_has_content) {
-                            $indent = ' ' x length($before);
+                            ($indent = $before) =~ s,[^\s], ,g;
                         } else {
                             $indent = $before;
                         }
@@ -190,8 +201,8 @@ sub extract {
                             # no need to indent an empty line
                             push(@res, "\n");
                         }
-                    } elsif (@chunkreflines) {
-                        # just 1 line
+                    } else {
+                        # case: just one line
                         if ($after) {
                             chomp(my $tmp = $chunkreflines[0]);
                             $line_new = $before . $tmp . $after . "\n";
@@ -203,9 +214,6 @@ sub extract {
                                 push(@res, "\n");
                             }
                         }
-                    } else {
-                        $carp_or_croak->("WARNING: Code chunk <<${chunkref}>> is" .
-                            " empty (at ${fname}:${lnum}).");
                     }
                     if (defined($line_new)) {
                         $line = $line_new;
@@ -215,14 +223,12 @@ sub extract {
                     $carp_or_croak->("WARNING: Code chunk <<${chunkref}>>" .
                         " does not exist (at ${fname}:${lnum}).");
                 }
-                $lnum = -1; # force line number directive
             } else {
                 $line =~ s/\@(<<|>>)/$1/g;
                 push(@res, $line);
             }
             last;
         }
-        $lnum_previous = $lnum;
     }
     $being_extracted{$chunk}--;
     return @res;
@@ -352,8 +358,8 @@ if ($no_op) {
         my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
         for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
             if (ref($item) eq 'ARRAY') {
-                my $head = $item->[-1];
-                print line_directive($head->[1], $head->[2]);
+                print line_directive($_->[1], $_->[2])
+                    for @{ $item };
             } else {
                 print $item;
             }

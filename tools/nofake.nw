@@ -356,6 +356,8 @@ A [[@@]] at the first column must yield a [[@]].
 
 <<read line vars>>=
 my $chunk = '';
+@
+
 <<read line>>=
 if ($line =~ m{^ @<< (.+?) @>>= \s* $}x) {
     $chunk = $1;
@@ -398,11 +400,13 @@ When dealing with line numbers, {\nofake} prioritize document structure,
 
 <<setup \$before\_has\_content>>=
 my $before_has_content = $before !~ m{^\s*$};
+@
+
 <<setup \$indent and \$before\_has\_content>>=
 my $indent;
 <<setup \$before\_has\_content>>
 if ($before_has_content) {
-    $indent = ' ' x length($before);
+    ($indent = $before) =~ s,[^\s], ,g;
 } else {
     $indent = $before;
 }
@@ -414,10 +418,11 @@ files have been read.
 <<propagate header special items>>=
 while (@chunkreflines and ref($chunkreflines[0]) eq 'ARRAY') {
     # propagate special items early, before processing lines
+    my @chunkspecials = @{ shift(@chunkreflines) };
     if (@res and ref($res[-1]) eq 'ARRAY') {
-        push(@{ $res[-1] }, @{ shift(@chunkreflines) });
+        push(@{ $res[-1] }, @chunkspecials);
     } else {
-        push(@res, [ @{ shift(@chunkreflines) } ]);
+        push(@res, [ @chunkspecials ]);
     }
 }
 @
@@ -433,9 +438,12 @@ more references.  This allows more than one chunk reference per line.
 <<extract and process chunk reference>>=
 my @chunkreflines = extract($prefix . $before, $fname,
     $lnum, $chunkref);
+unless (@chunkreflines) {
+    <<warn empty code chunk>>
+}
 <<propagate header special items>>
 if (@chunkreflines > 1) {
-    # many lines
+    # case: many lines
     <<setup \$indent and \$before\_has\_content>>
     my $first = shift(@chunkreflines);
     my $last = pop(@chunkreflines);
@@ -464,8 +472,8 @@ if (@chunkreflines > 1) {
         # no need to indent an empty line
         push(@res, "\n");
     }
-} elsif (@chunkreflines) {
-    # just 1 line
+} else {
+    # case: just one line
     if ($after) {
         chomp(my $tmp = $chunkreflines[0]);
         $line_new = $before . $tmp . $after . "\n";
@@ -477,8 +485,6 @@ if (@chunkreflines > 1) {
             push(@res, "\n");
         }
     }
-} else {
-    <<warn empty code chunk>>
 }
 @
 
@@ -511,6 +517,7 @@ my $found_chunk_ref;
 for (;;) {
     $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) @<< (.*?[^\@]) >> (|[^>].*?) $}x);
     if ($found_chunk_ref) {
+        $lnum_previous = -1;
         my $before = $1;
         my $chunkref = $2;
         my $after = $3;
@@ -524,7 +531,6 @@ for (;;) {
         } else {
             <<warn chunk does not exit>>
         }
-        $lnum = -1; # force line number directive
     } else {
         $line =~ s/\@(@<<|@>>)/$1/g;
         push(@res, $line);
@@ -542,12 +548,12 @@ if ($list_roots and @input) {
 }
 @
 
-Special item [[0]] is a line number directive.
+Special item [[[0, $fname, $lnum]]] is a line number directive.
 
 <<push line number directive>>=
 my $linenum = [0, $fname, $lnum];
-if (@res and ref($res[$#res]) eq 'ARRAY') {
-    push(@{ $res[$#res] }, $linenum);
+if (@res and ref($res[-1]) eq 'ARRAY') {
+    push(@{ $res[-1] }, $linenum);
 } else {
     push(@res, [$linenum]);
 }
@@ -570,13 +576,17 @@ sub extract {
     my @res = ();
     my @input = get_many($chunks{$chunk});
     <<remove chunk data if listing roots>>
+    my $fname_previous = '';
     my $lnum_previous = -1;
     while (my ($fname, $lnum, $line) = splice(@input, 0, 3)) {
-        if ($sync and $lnum != $lnum_previous + 1) {
-            <<push line number directive>>
+        if ($sync) {
+            if ($fname ne $fname_previous or $lnum != $lnum_previous + 1) {
+                <<push line number directive>>
+            }
+            $fname_previous = $fname;
+            $lnum_previous = $lnum;
         }
         <<process line>>
-        $lnum_previous = $lnum;
     }
     $being_extracted{$chunk}--;
     return @res;
@@ -754,8 +764,8 @@ local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
 for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
     if (ref($item) eq 'ARRAY') {
-        my $head = $item->[-1];
-        print line_directive($head->[1], $head->[2]);
+        print line_directive($_->[1], $_->[2])
+            for @{ $item };
     } else {
         print $item;
     }
