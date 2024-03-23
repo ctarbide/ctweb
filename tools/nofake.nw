@@ -362,7 +362,12 @@ my $chunk = '';
 if ($line =~ m{^ @<< (.+?) @>>= \s* $}x) {
     $chunk = $1;
     if (!$chunks_options{$chunk}) {
-        $chunks_options{$chunk} = {nextractions => 0};
+        $chunks_options{$chunk} = {
+            nchunks => 0,
+            nextractions => 0,
+            first_fname => $ARGV,
+            first_lnum => int($.)
+        };
     }
     $chunks_options{$chunk}->{nchunks}++;
 } elsif ($chunk) {
@@ -427,20 +432,12 @@ while (@chunkreflines and ref($chunkreflines[0]) eq 'ARRAY') {
 }
 @
 
-<<warn empty code chunk>>=
-$carp_or_croak->("WARNING: Code chunk @<<${chunkref}@>> is" .
-    " empty (at ${fname}:${lnum}).");
-@
-
 Defining \$line\_new will effectively replace the current line and search for
 more references.  This allows more than one chunk reference per line.
 
 <<extract and process chunk reference>>=
 my @chunkreflines = extract($prefix . $before, $fname,
     $lnum, $chunkref);
-unless (@chunkreflines) {
-    <<warn empty code chunk>>
-}
 <<propagate header special items>>
 if (@chunkreflines > 1) {
     # case: many lines
@@ -575,6 +572,11 @@ sub extract {
     $chunks_options{$chunk}->{nextractions}++;
     my @res = ();
     my @input = get_many($chunks{$chunk});
+    unless (@input) {
+        $carp_or_croak->(
+            "WARNING: Code chunk @<<${chunk}@>> is empty" .
+            " (at ${parent_fname}:${parent_lnum}).");
+    }
     <<remove chunk data if listing roots>>
     my $fname_previous = '';
     my $lnum_previous = -1;
@@ -759,9 +761,21 @@ if ($no_op) {
 }
 @
 
+Empty chunks are a special case, they do not have lines and by
+consequence, no file/line information from where the first line
+came from.
+
+<<set [[$first_fname]] and [[$first_lnum]] from chunk options>>=
+$first_fname = $chunks_options{$chunk}->{first_fname};
+$first_lnum = $chunks_options{$chunk}->{first_lnum};
+@
+
 <<output lines of \$chunk>>=
 local $\ = undef;
 my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+unless ($first_fname) {
+    <<set [[$first_fname]] and [[$first_lnum]] from chunk options>>
+}
 for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
     if (ref($item) eq 'ARRAY') {
         print line_directive($_->[1], $_->[2])
@@ -795,8 +809,10 @@ for my $chunk (@chunks) {
 my @all_chunks = sort(keys(%chunks_options));
 # first pass, extract all chunks
 for my $chunk (@all_chunks) {
-    my $opts = $chunks_options{$chunk};
     my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+    unless ($first_fname) {
+        <<set [[$first_fname]] and [[$first_lnum]] from chunk options>>
+    }
     extract('', $first_fname, $first_lnum, $chunk);
 }
 # second pass, report

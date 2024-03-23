@@ -97,7 +97,12 @@ sub read_file {
         if ($line =~ m{^ << (.+?) >>= \s* $}x) {
             $chunk = $1;
             if (!$chunks_options{$chunk}) {
-                $chunks_options{$chunk} = {nextractions => 0};
+                $chunks_options{$chunk} = {
+                    nchunks => 0,
+                    nextractions => 0,
+                    first_fname => $ARGV,
+                    first_lnum => int($.)
+                };
             }
             $chunks_options{$chunk}->{nchunks}++;
         } elsif ($chunk) {
@@ -122,6 +127,11 @@ sub extract {
     $chunks_options{$chunk}->{nextractions}++;
     my @res = ();
     my @input = get_many($chunks{$chunk});
+    unless (@input) {
+        $carp_or_croak->(
+            "WARNING: Code chunk <<${chunk}>> is empty" .
+            " (at ${parent_fname}:${parent_lnum}).");
+    }
     if ($list_roots and @input) {
         $chunks{$chunk} = [$input[0], $input[1], ""];
     }
@@ -152,10 +162,6 @@ sub extract {
                     my $line_new = undef;
                     my @chunkreflines = extract($prefix . $before, $fname,
                         $lnum, $chunkref);
-                    unless (@chunkreflines) {
-                        $carp_or_croak->("WARNING: Code chunk <<${chunkref}>> is" .
-                            " empty (at ${fname}:${lnum}).");
-                    }
                     while (@chunkreflines and ref($chunkreflines[0]) eq 'ARRAY') {
                         # propagate special items early, before processing lines
                         my @chunkspecials = @{ shift(@chunkreflines) };
@@ -332,8 +338,11 @@ if ($no_op) {
     my @all_chunks = sort(keys(%chunks_options));
     # first pass, extract all chunks
     for my $chunk (@all_chunks) {
-        my $opts = $chunks_options{$chunk};
         my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+        unless ($first_fname) {
+            $first_fname = $chunks_options{$chunk}->{first_fname};
+            $first_lnum = $chunks_options{$chunk}->{first_lnum};
+        }
         extract('', $first_fname, $first_lnum, $chunk);
     }
     # second pass, report
@@ -356,6 +365,10 @@ if ($no_op) {
     for my $chunk (@chunks) {
         local $\ = undef;
         my ($first_fname, $first_lnum) = get_many($chunks{$chunk});
+        unless ($first_fname) {
+            $first_fname = $chunks_options{$chunk}->{first_fname};
+            $first_lnum = $chunks_options{$chunk}->{first_lnum};
+        }
         for my $item (extract('', $first_fname, $first_lnum, $chunk)) {
             if (ref($item) eq 'ARRAY') {
                 print line_directive($_->[1], $_->[2])
