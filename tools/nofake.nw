@@ -355,7 +355,7 @@ or newline.
 A [[@@]] at the first column must yield a [[@]].
 
 <<read line vars>>=
-my $chunk = '';
+my $chunk = undef;
 @
 
 <<read line>>=
@@ -370,7 +370,7 @@ if ($line =~ m{^ @<< (.+?) @>>= \s* $}x) {
         };
     }
     $chunks_options{$chunk}->{nchunks}++;
-} elsif ($chunk) {
+} elsif (defined($chunk)) {
     if ($line =~ m{^ \@ (?: $ | \s) }x) {
         $chunk = '';
     } else {

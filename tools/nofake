@@ -91,7 +91,7 @@ sub line_directive {
 }
 sub read_file {
     local @ARGV = @_;
-    my $chunk = '';
+    my $chunk = undef;
     while (my $line = <>) {
         chomp($line);
         if ($line =~ m{^ << (.+?) >>= \s* $}x) {
@@ -105,7 +105,7 @@ sub read_file {
                 };
             }
             $chunks_options{$chunk}->{nchunks}++;
-        } elsif ($chunk) {
+        } elsif (defined($chunk)) {
             if ($line =~ m{^ \@ (?: $ | \s) }x) {
                 $chunk = '';
             } else {

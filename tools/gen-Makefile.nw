@@ -921,14 +921,6 @@ if (i_len) {
 	cur_type = 0
 	<<match epilog>>
 }
-
-{
-	if (!found) {
-		print "# warn: unprocessed line: \"" $0 "\""
-	} else {
-		found = 0
-	}
-}
 @
 
 <<exit with failure message>>=

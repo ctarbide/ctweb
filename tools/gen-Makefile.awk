@@ -670,14 +670,6 @@ function push_current_block_output_deferred(s) {
 	} else next
 }
 
-{
-	if (!found) {
-		print "# warn: unprocessed line: \"" $0 "\""
-	} else {
-		found = 0
-	}
-}
-
 END{
 	print "# automatically generated, please to not edit"
 	if (genbymsg) {
