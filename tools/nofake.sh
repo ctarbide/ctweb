@@ -107,9 +107,11 @@ fi
 stamp=${output}.stamp
 
 args_id(){
-    perl -MDigest::SHA=sha256_hex \
-        -le'print(sha256_hex(join(q{&}, @ARGV)))' \
-        -- "$@"
+    perl -Minteger -le'
+        my $s = 5381;
+        $s = ($s * 33) + $_ for unpack(q{C*}, join(qq{\xC2\xB7}, @ARGV));
+        print(sprintf(qq{%08x}, $s & 0xFFFFFFFF));
+    ' -- "$@"
 }
 
 uptodate(){
