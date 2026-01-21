@@ -55,7 +55,7 @@ r0Aa(){
 }
 temporary_file(){
     if type mktemp >/dev/null 2>&1; then
-        tmpfile=`mktemp`
+        tmpfile=`mktemp /tmp/tmp.XXXXXXXXXX`
     elif type perl >/dev/null 2>&1 && test -r /dev/urandom; then
         tmpfile="/tmp/tmp.`u0Aa 12`"
         ( umask 0177; : > "${tmpfile}" )

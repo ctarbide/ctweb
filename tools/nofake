@@ -23,7 +23,7 @@
 eval 'exec perl -wS $0 ${1+"$@"}'
     if 0;
 
-use 5.008; # perl v5.8.0 was released on July 18, 2002
+use 5.006; # perl v5.6.0 was released on March 22, 2000
 use strict;
 use warnings FATAL => qw{uninitialized void inplace};
 use Carp ();
@@ -293,7 +293,8 @@ if ($dump eq '-') {
 }
 
 if ($load) {
-    use Storable qw{lock_retrieve fd_retrieve};
+    require Storable;
+    Storable->import(qw{lock_retrieve fd_retrieve});
     my $state;
     if ($load eq '-') {
         if (-t STDIN) {
@@ -316,7 +317,8 @@ if ($load ne '-' and not @files) {
 read_file($_) for @files;
 
 if ($dump) {
-    use Storable qw{lock_store store_fd};
+    require Storable;
+    Storable->import(qw{lock_store store_fd});
     my $state = [\%chunks_options, \%chunks];
     if ($dump eq '-') {
         if (-t STDOUT) {

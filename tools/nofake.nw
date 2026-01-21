@@ -262,7 +262,7 @@ Norman Ramsey, Literate programming simplified, IEEE Software
 eval 'exec perl -wS $0 ${1+"$@"}'
     if 0;
 
-use 5.008; # perl v5.8.0 was released on July 18, 2002
+use 5.006; # perl v5.6.0 was released on March 22, 2000
 use strict;
 use warnings FATAL => qw{uninitialized void inplace};
 use Carp ();
@@ -631,7 +631,8 @@ Carp::croak("ERROR: Will not dump binary data to a terminal.");
 See https://perldoc.perl.org/5.8.9/Storable for more information.
 
 <<dump state>>=
-use Storable qw{lock_store store_fd};
+require Storable;
+Storable->import(qw{lock_store store_fd});
 my $state = [\%chunks_options, \%chunks];
 if ($dump eq '-') {
     if (-t STDOUT) {
@@ -649,7 +650,8 @@ Carp::croak("ERROR: State file does not exist.");
 @
 
 <<load state>>=
-use Storable qw{lock_retrieve fd_retrieve};
+require Storable;
+Storable->import(qw{lock_retrieve fd_retrieve});
 my $state;
 if ($load eq '-') {
     if (-t STDIN) {
@@ -1091,7 +1093,7 @@ r0Aa(){
 <<temporary\_file>>=
 temporary_file(){
     if type mktemp >/dev/null 2>&1; then
-        tmpfile=`mktemp`
+        tmpfile=`mktemp /tmp/tmp.XXXXXXXXXX`
     elif type perl >/dev/null 2>&1 && test -r /dev/urandom; then
         tmpfile="/tmp/tmp.`u0Aa 12`"
         ( umask 0177; : > "${tmpfile}" )
