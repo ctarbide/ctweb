@@ -151,6 +151,7 @@ sub extract {
             $lnum_previous = $lnum;
         }
         my $found_chunk_ref;
+        my $acc = '';
         for (;;) {
             $found_chunk_ref = ($line =~ m{^ (|.*?[^\@]) << (.*?[^\@]) >> (|[^>].*?) $}x);
             if ($found_chunk_ref) {
@@ -211,14 +212,16 @@ sub extract {
                         # case: just one line
                         if ($after) {
                             chomp(my $tmp = $chunkreflines[0]);
-                            $line_new = $before . $tmp . $after . "\n";
+                            $acc .= $before . $tmp;
+                            $line_new = $after . "\n";
                         } else {
                             my $before_has_content = $before !~ m{^\s*$};
                             if ($before_has_content or $chunkreflines[0] ne "\n") {
-                                push(@res, $before . $chunkreflines[0]);
+                                push(@res, $acc . $before . $chunkreflines[0]);
                             } else {
-                                push(@res, "\n");
+                                push(@res, $acc . "\n");
                             }
+                            last;
                         }
                     }
                     if (defined($line_new)) {
@@ -231,7 +234,7 @@ sub extract {
                 }
             } else {
                 $line =~ s/\@(<<|>>)/$1/g;
-                push(@res, $line);
+                push(@res, $acc . $line);
             }
             last;
         }
